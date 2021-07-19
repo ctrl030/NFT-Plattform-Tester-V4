@@ -77,7 +77,7 @@ describe("Monkey Contract, testing", () => {
     }
 
     // NFT totalSupply should be 12
-    const _totalSupply = await monkeyContract.showTotalSupply();
+    const _totalSupply = await monkeyContract.totalSupply();
     expect(_totalSupply).to.equal(12); 
 
     // testing getting data from mapping
@@ -142,14 +142,14 @@ describe("Monkey Contract, testing", () => {
     let _monkeyId = await monkeyContract.findMonkeyIdsOfAddress(accounts[0].address);
     for(i in _monkeyId){
       let _result = ethers.utils.formatUnits(_monkeyId[i], 0);
-      //console.log("Token IDs of accounts[0]", _result);
+      console.log("Token IDs of accounts[0]", _result);
     }    
   });
 
   it("Test 5: TRANSFER 2 gen0 monkeys from account[0] to account[1]", async () => {    
 
     const _totalSupply = await monkeyContract.totalSupply();
-    //console.log(`total#[${_totalSupply}]`)
+    console.log(`total#[${_totalSupply}]`)
 
     await monkeyContract.transferFrom(accounts[0].address, accounts[1].address, 2);
     expect(await monkeyContract.balanceOf(accounts[1].address)).to.equal(1);
@@ -160,14 +160,16 @@ describe("Monkey Contract, testing", () => {
     let _monkeyId = await monkeyContract.findMonkeyIdsOfAddress(accounts[1].address);
     for(i in _monkeyId){
       let _result = ethers.utils.formatUnits(_monkeyId[i], 0);
-      //console.log("Token IDs of accounts[1], should be 2 and 3: ", _result);
+      console.log("Token IDs of accounts[1], should be 2 and 3: ", _result);
     }
 
     let _monkeyId1 = await monkeyContract.findMonkeyIdsOfAddress(accounts[0].address);
-    for(k in _monkeyId1){
+    let resultArray = [];
+    for(k = 0; k < _monkeyId1.length; k++ ){
       let _result1 = ethers.utils.formatUnits(_monkeyId1[k], 0);
-      //console.log("Token IDs of accounts[0], should be 0-14, without 2 and 3: ", _result1);
+      resultArray.push(_result1);      
     }
+    console.log("Token IDs of accounts[0], should be 0-14, without 2 and 3: ", resultArray);
 
     // accounts[0] should own 13 monkeys
     expect(await monkeyContract.balanceOf(accounts[0].address)).to.equal(13);

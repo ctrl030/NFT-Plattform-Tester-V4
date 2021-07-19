@@ -5,8 +5,8 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 // preparing safemath to rule out over- and underflow  
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-// importing ERC721 token standard interface
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+// importing ERC721Enumerable token standard interface
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 // importing openzeppelin script to guard against re-entrancy
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 // importing openzeppelin script to make contract pausable
@@ -14,7 +14,7 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 // importing hardhat console.log functionality
 import "hardhat/console.sol";
 
-contract MonkeyContract is ERC721, Ownable, ReentrancyGuard, Pausable {
+contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable {
 
     // using safemath for all uint256 numbers, 
     // use uint256 and (.add) and (.sub)
@@ -25,9 +25,7 @@ contract MonkeyContract is ERC721, Ownable, ReentrancyGuard, Pausable {
     address _monkeyContractAddress;   
     // Only 12 monkeys can be created from scratch (generation 0)
     uint256 public GEN0_Limit = 12;
-    uint256 public gen0amountTotal;
-    // amount of NFTs total in existence - can be queried by showTotalSupply function    
-    uint256 public totalSupply;
+    uint256 public gen0amountTotal;    
     
     // STRUCT
     // this struct is the blueprint for new NFTs, they will be created from it
@@ -173,7 +171,7 @@ contract MonkeyContract is ERC721, Ownable, ReentrancyGuard, Pausable {
         countdown = countdown.sub(1);
         }
 
-        uint256 pseudoRandomAdv = uint256(keccak256(abi.encodePacked(uint256(_random), totalSupply, allMonkeysArray[0].genes))); 
+        uint256 pseudoRandomAdv = uint256(keccak256(abi.encodePacked(uint256(_random), totalSupply(), allMonkeysArray[0].genes))); 
         
         //xxxx
         //console.log("pseudoRandomAdv: %s ", pseudoRandomAdv);
@@ -216,6 +214,7 @@ contract MonkeyContract is ERC721, Ownable, ReentrancyGuard, Pausable {
         return newGeneSequence;      
     }
 
+    // XXXXX re-do, not ERC721Enumerable yet
     // gives back an array with the NFT tokenIds that the provided sender address owns
     // deleted NFTs are kept as entries with value 0 (token ID 0 is used by Zero Monkey)
     function findMonkeyIdsOfAddress(address owner) public view returns (uint256[] memory) {
@@ -224,9 +223,11 @@ contract MonkeyContract is ERC721, Ownable, ReentrancyGuard, Pausable {
 
         uint256 entryCounter = 0;
 
+        uint256 totalAmountOfNFTs = totalSupply();
+
         uint256[] memory ownedTokenIDs = new uint256[](amountOwned);
 
-        for (uint256 tokenIDtoCheck = 0; tokenIDtoCheck < totalSupply; tokenIDtoCheck++ ) {
+        for (uint256 tokenIDtoCheck = 0; tokenIDtoCheck < totalAmountOfNFTs; tokenIDtoCheck++ ) {
             
             if (ownerOf(tokenIDtoCheck) == owner) {
                 ownedTokenIDs[entryCounter] = tokenIDtoCheck; 
@@ -250,6 +251,7 @@ contract MonkeyContract is ERC721, Ownable, ReentrancyGuard, Pausable {
         
     }
 
+    // XXXXX re-do, not ERC721Enumerable yet
     // used for creating monkeys (returns tokenId, could be used)
     function _createMonkey(
         uint256 _parent1Id,
@@ -267,7 +269,7 @@ contract MonkeyContract is ERC721, Ownable, ReentrancyGuard, Pausable {
             birthtime: uint256(block.timestamp)
         });
         // updating total supply
-        totalSupply++;
+        //totalSupply++;
         
         // the push function also returns the length of the array, using that directly and saving it as the ID, starting with 0
         allMonkeysArray.push(newMonkey);
@@ -280,7 +282,7 @@ contract MonkeyContract is ERC721, Ownable, ReentrancyGuard, Pausable {
         emit MonkeyCreated(_owner, newMonkeyId, _parent1Id, _parent2Id, _genes);
 
         // xxxx
-        //console.log("Token ID %s has genes: %s", newMonkeyId, _genes);
+        console.log("Token ID %s has genes: %s", newMonkeyId, _genes);
 
         // tokenId is returned
         return newMonkeyId;
@@ -320,12 +322,7 @@ contract MonkeyContract is ERC721, Ownable, ReentrancyGuard, Pausable {
             ownerOf(tokenId),
             getApproved(tokenId)
         );
-    }
-
-    // Returns the _totalSupply
-    function showTotalSupply() public view returns (uint256) {
-        return totalSupply;
-    }
+    }   
 
     /// * @dev Assign ownership of a specific Monekey to an address.
     /// * @dev This poses no restriction on _msgSender()
@@ -343,6 +340,7 @@ contract MonkeyContract is ERC721, Ownable, ReentrancyGuard, Pausable {
         require (_isApprovedOrOwner(_msgSender(), _tokenId) == true);   
 
         safeTransferFrom(_from, _to, _tokenId);
+        
     }
 
     function burnNFT (        
