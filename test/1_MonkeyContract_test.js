@@ -1,10 +1,24 @@
 const { expect } = require('chai');
 const { BigNumber } = require("ethers");
 
+
+
 // Main function that is executed during the test
 describe("Monkey Contract, testing", () => {
   // Global variable declarations
   let _contractInstance, monkeyContract, accounts, assertionCounter;
+
+  async function getNFTArray(owner) {
+    let resultArray = await monkeyContract.findMonkeyIdsOfAddress(owner);
+    return resultArray;
+  };
+  
+  async function expectNFTArray(owner, expectedArray) {
+    let resultArray = await getNFTArray(owner);
+    for (let count = 0; count < resultArray.length; count ++) {
+      expect(resultArray[count]).to.equal(ethers.utils.formatUnits(expectedArray[count], 0));
+    };  
+  }
 
   // 11 genes0
   const genes0 = [
@@ -157,6 +171,7 @@ describe("Monkey Contract, testing", () => {
     await monkeyContract.transferFrom(accounts[0].address, accounts[1].address, 3);
     expect(await monkeyContract.balanceOf(accounts[1].address)).to.equal(2);
 
+    // xxxx only console logging so far
     let _monkeyId = await monkeyContract.findMonkeyIdsOfAddress(accounts[1].address);
     for(i in _monkeyId){
       let _result = ethers.utils.formatUnits(_monkeyId[i], 0);
@@ -170,6 +185,14 @@ describe("Monkey Contract, testing", () => {
       resultArray.push(_result1);      
     }
     console.log("Token IDs of accounts[0], should be 0-14, without 2 and 3: ", resultArray);
+
+    let expectedArray = [0,1,4,5,6,7,8,9,10,11,12,13,14]
+    await expectNFTArray(accounts[0].address, expectedArray);
+
+    /*for (let count = 0; count < resultArray.length; count ++) {
+    expect(resultArray[count]).to.equal(ethers.utils.formatUnits(expectedArray[count], 0));
+    }*/
+
 
     // accounts[0] should own 13 monkeys
     expect(await monkeyContract.balanceOf(accounts[0].address)).to.equal(13);
@@ -186,12 +209,10 @@ describe("Monkey Contract, testing", () => {
   it('Test 6: accounts[0] should give accounts[1] operator status', async() => {  
     
     // Giving operator status 
-
     await  monkeyContract.setApprovalForAll(accounts[1].address, true);
     expect(await monkeyContract.isApprovedForAll(accounts[0].address, accounts[1].address)).to.equal(true);
 
     // Taking operator status 
-
     await  monkeyContract.setApprovalForAll(accounts[1].address, false);
     expect(await monkeyContract.isApprovedForAll(accounts[0].address, accounts[1].address)).to.equal(false);
 
@@ -201,20 +222,23 @@ describe("Monkey Contract, testing", () => {
     );
 
     // Giving operator status again
-
     await  monkeyContract.setApprovalForAll(accounts[1].address, true);
     expect(await monkeyContract.isApprovedForAll(accounts[0].address, accounts[1].address)).to.equal(true);
     
-    // AS operator, accounts[1] sends NFT with Token ID 4 from accounts[0] to accounts[2]
+    // As operator, accounts[1] sends NFT with Token ID 4 from accounts[0] to accounts[2]
     await monkeyContract.connect(accounts[1]).transferFrom(accounts[0].address, accounts[2].address, 4);
 
-   
+    expect(await monkeyContract.balanceOf(accounts[2].address)).to.equal(1);
+
+    let expectedArray = [4];    
+    await expectNFTArray(accounts[2].address, expectedArray);
+    
   });
 
   it.skip('Test 7: as operator, accounts[1] should use transferFrom to move 4 NFTs with Token IDs 2-5 from accounts[0] to accounts[2]', async() => {  
     
     for (let index = 2; index <= 5; index++) {
-      await monkeyContractHHInstance.transferFrom(accounts[0], accounts[2], `${index}`, { 
+      await monkeyContractHHInstance.transferFrom(accounts[0].address, accounts[2].address, `${index}`, { 
         from: accounts[1],
       });
 
