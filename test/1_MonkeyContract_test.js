@@ -20,6 +20,11 @@ describe("Monkey Contract, testing", () => {
     };  
   }
 
+  function bigNumberToNumber(bignumber) {
+    let convertedNumber = ethers.utils.formatUnits(bignumber, 0);
+    return convertedNumber;
+  }
+
   // 11 genes0
   const genes0 = [
     1000000000000000,
@@ -125,7 +130,7 @@ describe("Monkey Contract, testing", () => {
     //console.log('breed3answer:', breed3answer);
 
     const NFTwTokenID12 = await monkeyContract.getMonkeyDetails(12);
-    let result12 = ethers.utils.formatUnits(NFTwTokenID12.genes, 0);
+    let result12 = bigNumberToNumber(NFTwTokenID12.genes);
     //console.log('NFTwTokenID12 genes:', result12);
 
     const NFTwTokenID13 = await monkeyContract.getMonkeyDetails(13);
@@ -186,7 +191,7 @@ describe("Monkey Contract, testing", () => {
     }
     console.log("Token IDs of accounts[0], should be 0-14, without 2 and 3: ", resultArray);
 
-    let expectedArray = [0,1,4,5,6,7,8,9,10,11,12,13,14]
+    let expectedArray = [0,1,14,13,4,5,6,7,8,9,10,11,12]
     await expectNFTArray(accounts[0].address, expectedArray);
 
     /*for (let count = 0; count < resultArray.length; count ++) {
@@ -232,6 +237,11 @@ describe("Monkey Contract, testing", () => {
 
     let expectedArray = [4];    
     await expectNFTArray(accounts[2].address, expectedArray);
+
+    let _monkeyId22 =  await monkeyContract.findMonkeyIdsOfAddress(accounts[2].address);
+    console.log('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXresult2:', _monkeyId22);    
+    let result22 = bigNumberToNumber(_monkeyId22);    
+    console.log('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXresult2:', result22);
     
   });
 

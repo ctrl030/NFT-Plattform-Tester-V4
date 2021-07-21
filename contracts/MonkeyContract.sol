@@ -119,18 +119,20 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
 
         uint256[] memory ownedTokenIDs = new uint256[](amountOwned);     
 
-         // xxxx
+        // xxxx
         console.log("amountOwnded: %s", amountOwned);    
 
         for (uint256 indexToCheck = 0; indexToCheck < amountOwned; indexToCheck++ ) {
             
             uint256 foundNFT = tokenOfOwnerByIndex(owner, indexToCheck);
 
-            //ownedTokenIDs[indexToCheck] = foundNFT;               
-        }
+            ownedTokenIDs[indexToCheck] = foundNFT;  
 
-        // xxxx
-        console.log("ownedTokenIDs array: %s", ownedTokenIDs); 
+            // xxxx
+            console.log("index: %s, ownedTokenIDs array entry: %s", indexToCheck, ownedTokenIDs[indexToCheck]);              
+        } 
+
+        
 
         return ownedTokenIDs;        
     }      
