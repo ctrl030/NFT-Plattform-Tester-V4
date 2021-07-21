@@ -242,7 +242,7 @@ describe("Monkey Contract, testing", () => {
         from: accounts[1],
       });
 
-      const testingMonkey = await monkeyContractHHInstance.getMonkeyDetails(index);
+      const testingMonkey = await monkeyContract.getMonkeyDetails(index);
     
       assert.equal(testingMonkey.owner, accounts[2]);
       assertionCounter++;        

@@ -21,6 +21,7 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
     using SafeMath for uint256;
 
     // STATE VARIABLES
+
     // MonkeyContract address
     address _monkeyContractAddress;   
     // Only 12 monkeys can be created from scratch (generation 0)
@@ -28,6 +29,7 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
     uint256 public gen0amountTotal;    
     
     // STRUCT
+
     // this struct is the blueprint for new NFTs, they will be created from it
     struct CryptoMonkey {        
         uint256 parent1Id;
@@ -38,6 +40,7 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
     }    
 
     // ARRAYS
+
     // This is an array that holds all CryptoMonkeys. 
     // Their position in that array IS their tokenId.
     // they never get deleted here, array only grows and keeps track of them all.
@@ -63,19 +66,12 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
         uint256 generation, 
         address owner
     );
-
-    // xxxx needs zero monkey or out?
+    
     // Constructor function
-    // is setting _name, and _symbol
-    // as well as creating a placeholder NFT,
-    // and for that setting _parent1Id, _parent2Id and _generation to 0, 
-    // the _genes to the Over 9000 Monkey, and then it is being burnt/locked away  
+    // is setting _name, and _symbol   
     constructor() ERC721("Crypto Monkeys", "MONKEY") {
-        _monkeyContractAddress = address(this);      
-        
-        // minting a placeholder Zero Monkey, that occupies the index 0 position
-        //_createMonkey(0, 0, 0, 1214131177989271, _monkeyContractAddress);  
-        //createGen0Monkey(1214131177989271);
+        _monkeyContractAddress = address(this);            
+       
     }
 
     // Functions 
@@ -109,26 +105,32 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
         );
     }    
 
+    
+
     // XXXXX re-do, not ERC721Enumerable yet
     // gives back an array with the NFT tokenIds that the provided sender address owns
     // deleted NFTs are kept as entries with value 0 (token ID 0 is used by Zero Monkey)
     function findMonkeyIdsOfAddress(address owner) public view returns (uint256[] memory) {
 
-        uint256 amountOwned = balanceOf(owner);
+        uint256 amountOwned = balanceOf(owner);      
 
-        uint256 entryCounter = 0;
+         // xxxx
+        console.log("owner: %s", owner);         
 
-        uint256 totalAmountOfNFTs = totalSupply();
+        uint256[] memory ownedTokenIDs = new uint256[](amountOwned);     
 
-        uint256[] memory ownedTokenIDs = new uint256[](amountOwned);
+         // xxxx
+        console.log("amountOwnded: %s", amountOwned);    
 
-        for (uint256 tokenIDtoCheck = 0; tokenIDtoCheck < totalAmountOfNFTs; tokenIDtoCheck++ ) {
+        for (uint256 indexToCheck = 0; indexToCheck < amountOwned; indexToCheck++ ) {
             
-            if (ownerOf(tokenIDtoCheck) == owner) {
-                ownedTokenIDs[entryCounter] = tokenIDtoCheck; 
-                entryCounter++;
-            }       
+            uint256 foundNFT = tokenOfOwnerByIndex(owner, indexToCheck);
+
+            //ownedTokenIDs[indexToCheck] = foundNFT;               
         }
+
+        // xxxx
+        console.log("ownedTokenIDs array: %s", ownedTokenIDs); 
 
         return ownedTokenIDs;        
     }      
@@ -139,7 +141,7 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
         require(gen0amountTotal < GEN0_Limit, "Maximum amount of gen 0 monkeys reached");
 
         // increasing counter of gen0 monkeys 
-        gen0amountTotal++;
+        gen0amountTotal++;        
 
         // creating
         _createMonkey(0, 0, 0, _genes, _msgSender());
@@ -189,7 +191,7 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
         emit MonkeyCreated(_owner, newMonkeyId, _parent1Id, _parent2Id, _genes);
 
         // xxxx
-        console.log("Token ID %s has genes: %s", newMonkeyId, _genes);
+        console.log("Token ID %s has genes: %s", newMonkeyId, _genes);                
 
         // tokenId is returned
         return newMonkeyId;
