@@ -21,7 +21,7 @@ describe("Monkey Contract, testing", () => {
   async function expectNFTArray(owner, expectedArray) {
     let resultArray = await getNFTArray(owner);
     for (let count = 0; count < resultArray.length; count ++) {
-      expect(ethers.utils.formatUnits(resultArray[count], 0)).to.equal(ethers.utils.formatUnits(expectedArray[count], 0));
+      expect(bigNumberToNumber(resultArray[count], 0)).to.equal(bigNumberToNumber(expectedArray[count], 0));
     };  
   }
 
