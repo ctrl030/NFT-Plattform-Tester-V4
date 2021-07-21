@@ -8,6 +8,11 @@ describe("Monkey Contract, testing", () => {
   // Global variable declarations
   let _contractInstance, monkeyContract, accounts, assertionCounter;
 
+  // this array serves as will receive the generated Hardhat addresses,
+  // i.e. accountToAddressArray[0] will hold the address of accounts[0]
+  // can be queried by showAllAccounts and findAccountForAddress
+  let accountToAddressArray = [];
+
   async function getNFTArray(owner) {
     let resultArray = await monkeyContract.findMonkeyIdsOfAddress(owner);
     return resultArray;
@@ -16,7 +21,7 @@ describe("Monkey Contract, testing", () => {
   async function expectNFTArray(owner, expectedArray) {
     let resultArray = await getNFTArray(owner);
     for (let count = 0; count < resultArray.length; count ++) {
-      expect(resultArray[count]).to.equal(ethers.utils.formatUnits(expectedArray[count], 0));
+      expect(ethers.utils.formatUnits(resultArray[count], 0)).to.equal(ethers.utils.formatUnits(expectedArray[count], 0));
     };  
   }
 
@@ -24,6 +29,30 @@ describe("Monkey Contract, testing", () => {
     let convertedNumber = ethers.utils.formatUnits(bignumber, 0);
     return convertedNumber;
   }
+
+  // show X - functions to console.log
+
+// for testing/debugging: shows all accounts and their addresses
+// is querying the copied addresses in accountToAddressArray
+async function showAllAccounts(){
+  for (let ind = 0; ind < accountToAddressArray.length; ind++) {
+    console.log("accounts[" +`${ind}`+ "] is: " + accountToAddressArray[ind])
+  }  
+};
+
+// for testing/debugging: looking up the accounts[] variable for an address
+function findAccountForAddress(addressToLookup){
+  for (let findInd = 0; findInd < accountToAddressArray.length; findInd++) {
+    if (accountToAddressArray[findInd] == addressToLookup) {
+      return "accounts[" +`${findInd}`+ "]"
+    } else if (addressToLookup== '0x0000000000000000000000000000000000000000' ) {
+      return "Zero address: 0x0000000000000000000000000000000000000000 => i.e. it was burnt"      
+    }       
+  }  
+};
+
+
+  
 
   // 11 genes0
   const genes0 = [
@@ -48,6 +77,11 @@ describe("Monkey Contract, testing", () => {
     monkeyContract = await _contractInstance.deploy(); 
     //get all accounts from hardhat
     accounts = await ethers.getSigners();
+
+    // making a copy of the account addresses to accountToAddressArray
+    for (let accIndex = 0; accIndex < accounts.length ; accIndex++) {
+      accountToAddressArray[accIndex] = accounts[accIndex];    
+    }
   })  
   
   it('Test 1: State variables are as expected: owner, contract address, NFT name, NFT symbol, gen 0 limit, gen 0 total, total supply', async() => { 
@@ -161,7 +195,7 @@ describe("Monkey Contract, testing", () => {
     let _monkeyId = await monkeyContract.findMonkeyIdsOfAddress(accounts[0].address);
     for(i in _monkeyId){
       let _result = ethers.utils.formatUnits(_monkeyId[i], 0);
-      console.log("Token IDs of accounts[0]", _result);
+      //console.log("Token IDs of accounts[0]", _result);
     }    
   });
 
@@ -180,7 +214,7 @@ describe("Monkey Contract, testing", () => {
     let _monkeyId = await monkeyContract.findMonkeyIdsOfAddress(accounts[1].address);
     for(i in _monkeyId){
       let _result = ethers.utils.formatUnits(_monkeyId[i], 0);
-      console.log("Token IDs of accounts[1], should be 2 and 3: ", _result);
+      //console.log("Token IDs of accounts[1], should be 2 and 3: ", _result);
     }
 
     let _monkeyId1 = await monkeyContract.findMonkeyIdsOfAddress(accounts[0].address);
@@ -189,7 +223,7 @@ describe("Monkey Contract, testing", () => {
       let _result1 = ethers.utils.formatUnits(_monkeyId1[k], 0);
       resultArray.push(_result1);      
     }
-    console.log("Token IDs of accounts[0], should be 0-14, without 2 and 3: ", resultArray);
+    //console.log("Token IDs of accounts[0], should be 0-14, without 2 and 3: ", resultArray);
 
     let expectedArray = [0,1,14,13,4,5,6,7,8,9,10,11,12]
     await expectNFTArray(accounts[0].address, expectedArray);
@@ -235,13 +269,15 @@ describe("Monkey Contract, testing", () => {
 
     expect(await monkeyContract.balanceOf(accounts[2].address)).to.equal(1);
 
-    let expectedArray = [4];    
+    const expectedArray = [4];    
     await expectNFTArray(accounts[2].address, expectedArray);
 
-    let _monkeyId22 =  await monkeyContract.findMonkeyIdsOfAddress(accounts[2].address);
-    console.log('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXresult2:', _monkeyId22);    
-    let result22 = bigNumberToNumber(_monkeyId22);    
-    console.log('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXresult2:', result22);
+    //const _monkeyId22 =  await monkeyContract.findMonkeyIdsOfAddress(accounts[2].address);
+    //console.log('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX_monkeyId22:', _monkeyId22);    
+    //const result22 = bigNumberToNumber(_monkeyId22);  
+
+    //const formatUnit22 = (_monkeyId22) => {return ethers.utils.formatUnits(_monkeyId22, 0) }
+    //console.log('XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXresult2:', result22);
     
   });
 

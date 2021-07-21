@@ -120,7 +120,7 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
         uint256[] memory ownedTokenIDs = new uint256[](amountOwned);     
 
         // xxxx
-        console.log("amountOwnded: %s", amountOwned);    
+        //console.log("amountOwned: %s", amountOwned);    
 
         for (uint256 indexToCheck = 0; indexToCheck < amountOwned; indexToCheck++ ) {
             
@@ -193,7 +193,7 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
         emit MonkeyCreated(_owner, newMonkeyId, _parent1Id, _parent2Id, _genes);
 
         // xxxx
-        console.log("Token ID %s has genes: %s", newMonkeyId, _genes);                
+        //console.log("Token ID %s has genes: %s", newMonkeyId, _genes);                
 
         // tokenId is returned
         return newMonkeyId;
