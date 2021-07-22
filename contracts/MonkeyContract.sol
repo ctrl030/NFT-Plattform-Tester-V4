@@ -27,6 +27,9 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
     // Only 12 monkeys can be created from scratch (generation 0)
     uint256 public GEN0_Limit = 12;
     uint256 public gen0amountTotal;    
+
+    //xxxx
+    uint256[] accountsSaved;
     
     // STRUCT
 

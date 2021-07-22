@@ -72,16 +72,24 @@ function findAccountForAddress(addressToLookup){
 
   //set contracts instances
   before(async function() {
-    // Deploy MonkeyContract to testnet
-    _contractInstance = await ethers.getContractFactory('MonkeyContract');
-    monkeyContract = await _contractInstance.deploy(); 
+   
     //get all accounts from hardhat
     accounts = await ethers.getSigners();
 
     // making a copy of the account addresses to accountToAddressArray
     for (let accIndex = 0; accIndex < accounts.length ; accIndex++) {
-      accountToAddressArray[accIndex] = accounts[accIndex];    
+      accountToAddressArray[accIndex] = accounts[accIndex].address;    
     }
+
+    showAllAccounts();
+
+    // xxxxxx
+    //accountsSaved
+
+    // Deploy MonkeyContract to testnet
+    _contractInstance = await ethers.getContractFactory('MonkeyContract');
+    monkeyContract = await _contractInstance.deploy(); 
+    
   })  
   
   it('Test 1: State variables are as expected: owner, contract address, NFT name, NFT symbol, gen 0 limit, gen 0 total, total supply', async() => { 
