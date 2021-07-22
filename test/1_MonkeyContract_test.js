@@ -47,7 +47,9 @@ function findAccountForAddress(addressToLookup){
       return "accounts[" +`${findInd}`+ "]"
     } else if (addressToLookup== '0x0000000000000000000000000000000000000000' ) {
       return "Zero address: 0x0000000000000000000000000000000000000000 => i.e. it was burnt"      
-    }       
+    } else {
+      return "Failed: This address is not in the hardhat accounts"   
+    }      
   }  
 };
 
