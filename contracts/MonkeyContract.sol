@@ -20,16 +20,27 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
     // use uint256 and (.add) and (.sub)
     using SafeMath for uint256;
 
+    // FOR HARDHAT TESTING
+    //xxxx Receives accounts
+    address[] accountsSaved;
+
+    function showAccountForAddress(address addressToLookup) public view {
+        for (uint256 findInd = 0; findInd < accountsSaved.length; findInd++) {
+            if (accountsSaved[findInd] == addressToLookup) {
+                console.log("accounts[%s]", findInd);
+            } else if (addressToLookup == address(0) ) { 
+                console.log("Zero address: 0x0000000000000000000000000000000000000000 => i.e. it was burnt");       
+            } 
+        }
+    }
+
     // STATE VARIABLES
 
     // MonkeyContract address
     address _monkeyContractAddress;   
     // Only 12 monkeys can be created from scratch (generation 0)
     uint256 public GEN0_Limit = 12;
-    uint256 public gen0amountTotal;    
-
-    //xxxx
-    uint256[] accountsSaved;
+    uint256 public gen0amountTotal;  
     
     // STRUCT
 
@@ -72,9 +83,15 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
     
     // Constructor function
     // is setting _name, and _symbol   
-    constructor() ERC721("Crypto Monkeys", "MONKEY") {
-        _monkeyContractAddress = address(this);            
-       
+    constructor(address[] memory _addressesArray) ERC721("Crypto Monkeys", "MONKEY") {
+        accountsSaved = _addressesArray;
+        _monkeyContractAddress = address(this); 
+
+        // minting a placeholder Zero Monkey, that occupies Token ID 0
+        _createMonkey(0, 0, 0, 1214131177989271, _msgSender());  
+
+        // burning placeholder zero monkey
+        burnNFT(0);
     }
 
     // Functions 
@@ -110,15 +127,14 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
 
     
 
-    // XXXXX re-do, not ERC721Enumerable yet
     // gives back an array with the NFT tokenIds that the provided sender address owns
     // deleted NFTs are kept as entries with value 0 (token ID 0 is used by Zero Monkey)
     function findMonkeyIdsOfAddress(address owner) public view returns (uint256[] memory) {
 
         uint256 amountOwned = balanceOf(owner);      
 
-         // xxxx
-        console.log("owner: %s", owner);         
+        // xxxx
+        showAccountForAddress(owner);         
 
         uint256[] memory ownedTokenIDs = new uint256[](amountOwned);     
 
@@ -135,8 +151,6 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
             console.log("index: %s, ownedTokenIDs array entry: %s", indexToCheck, ownedTokenIDs[indexToCheck]);              
         } 
 
-        
-
         return ownedTokenIDs;        
     }      
 
@@ -152,18 +166,14 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
         _createMonkey(0, 0, 0, _genes, _msgSender());
         
     }    
-    
-    // XXXXX needs to be limited, at the moment anybody can mint anything, can choose genes, owner, generation, unlimited amounts,
+        
     // how to bind this to frontend inputs? maybe calling randomizing functions in contract first, whose data then get minted, paid at start of randomizing
     // make this a demo function with generation 99    
-    function createMonkey(
-        uint256 _parent1Id,
-        uint256 _parent2Id,
-        uint256 _generation,
+    function createDemoMonkey(               
         uint256 _genes,
         address _owner
     ) public returns (uint256) {
-        uint256 newMonkey = _createMonkey(_parent1Id, _parent2Id, _generation, _genes, _owner);
+        uint256 newMonkey = _createMonkey(99, 99, 99, _genes, _owner);
         return newMonkey;
     }
 
