@@ -13,17 +13,37 @@ describe("Monkey Contract, testing", () => {
   // can be queried by showAllAccounts and findAccountForAddress
   let accountToAddressArray = [];
 
+  // creating an array of NFTs from the owner's mappings: _ownedTokens 
   async function getNFTArray(owner) {
-    let resultArray = await monkeyContract.findMonkeyIdsOfAddress(owner);
-    return resultArray;
+    const resultArray = await monkeyContract.findMonkeyIdsOfAddress(owner);
+    const normalNumbersResultArr = [];
+
+    for(pos = 0; pos < resultArray.length; pos++) {
+      normalNumbersResultArr[pos] = bigNumberToNumber(resultArray[pos]);
+    } 
+    console.log("NFT Array of", findAccountForAddress(owner), ": ", normalNumbersResultArr);
+    return normalNumbersResultArr;
   };
   
   async function expectNFTArray(owner, expectedArray) {
     let resultArray = await getNFTArray(owner);
     for (let count = 0; count < resultArray.length; count ++) {
       expect(bigNumberToNumber(resultArray[count], 0)).to.equal(bigNumberToNumber(expectedArray[count], 0));
+
+      /*expect(bigNumberToNumber(resultArray[count], 0)).to.equal(bigNumberToNumber(
+
+        // Mapping from token ID to index of the owner tokens list
+        //mapping(uint256 => uint256) private 
+        await monkeyContract._ownedTokensIndex;
+        expectedArray[count]
+        
+        , 0));*/
     };  
+
   }
+
+ 
+  
 
   function bigNumberToNumber(bignumber) {
     let convertedNumber = ethers.utils.formatUnits(bignumber, 0);
@@ -32,21 +52,20 @@ describe("Monkey Contract, testing", () => {
 
   // show X - functions to console.log
 
-// for testing/debugging: looking up the accounts[] variable for an address
-function findAccountForAddress(addressToLookup){
-  for (let findInd = 0; findInd < accountToAddressArray.length; findInd++) {
-    if (accountToAddressArray[findInd] == addressToLookup) {
-      return "accounts[" +`${findInd}`+ "]"
-    } else if (addressToLookup== '0x0000000000000000000000000000000000000000' ) {
-      return "Zero address: 0x0000000000000000000000000000000000000000 => i.e. it was burnt"      
-    }   
-  }  
-};
+  // for testing/debugging: looking up the accounts[] variable for an address
+  function findAccountForAddress(addressToLookup){
+    for (let findInd = 0; findInd < accountToAddressArray.length; findInd++) {
+      if (accountToAddressArray[findInd] == addressToLookup) {
+        return "accounts[" +`${findInd}`+ "]"
+      } else if (addressToLookup== '0x0000000000000000000000000000000000000000' ) {
+        return "Zero address: 0x0000000000000000000000000000000000000000 => i.e. it was burnt"      
+      }   
+    }  
+  };
  
 
-  // 11 genes0
+  // 12 genes0
   const genes0 = [
-    1000000000000000,
     1111111111111111,
     2222222222222222,
     3333333333333333,
@@ -57,7 +76,8 @@ function findAccountForAddress(addressToLookup){
     1214131177989271,
     4778887573779531,
     2578926622376651,
-    5867697316113337        
+    5867697316113337,
+    2577786627976651        
   ] 
 
   //set contracts instances
@@ -106,30 +126,19 @@ function findAccountForAddress(addressToLookup){
     const _totalSupply = await monkeyContract.totalSupply();
     expect(_totalSupply).to.equal(0);
     
-    // xxxx zero monkey exists in the allMonkeysArray
-
+    // Zero monkey exists in the allMonkeysArray, but burned
+    // i.e. owner is zero address and it is deleted from _allTokens which is queried by totalSupply()
     const zeroDetails = await monkeyContract.allMonkeysArray(0);
     const zeroGenes = bigNumberToNumber(zeroDetails[3]); 
-    console.log("zeroGenes: ", zeroGenes);      
+    expect(zeroGenes).to.equal(bigNumberToNumber(1214131177989271));  
+    
+    
+    
 
   });
 
 
-  it("Test 2: Gen 0 monkeys: Create 12 gen 0 NFTs, then expect revert above 12 (after GEN0_Limit = 12)", async () => {
-    /*
-    const tokenInIndex0AtThisMoment = await monkeyContract.tokenByIndex(0);
-    const normalNumber = bigNumberToNumber(tokenInIndex0AtThisMoment);
-    console.log("tokenInIndex0AtThisMoment: ", normalNumber);      
-    
-    const ownerOf0 = await monkeyContract.ownerOf(0);
-    //const accountOfToken0 = findAccountForAddress(ownerOf0);
-    console.log('ownerOf0', ownerOf0);*/
-
-   
-
-
-    /*
-
+  it("Test 2: Gen 0 monkeys: Create 12 gen 0 NFTs, then expect revert above 12 (after GEN0_Limit = 12)", async () => {   
 
     // REVERT: create a gen 0 monkey from account[1]
     await expect(monkeyContract.connect(accounts[1]).createGen0Monkey(genes0[0])).to.be.revertedWith(
@@ -145,26 +154,31 @@ function findAccountForAddress(addressToLookup){
     const _totalSupply2 = await monkeyContract.totalSupply();
     expect(_totalSupply2).to.equal(12); 
 
-    // testing getting data from mapping
-    for (let i = 0; i < _totalSupply; i++) {
-      let _monkeyMapping = await monkeyContract.allMonkeysArray(i);
-      // skip monkey created by constructor
-      //if(i > 0){
+    // There should be 12 Gen 0 Monkeys
+    const _GEN0Amount = await monkeyContract.gen0amountTotal();
+    expect (_GEN0Amount).to.equal(12); 
 
-      // verify monkey genes are the same from our genes0 array 
-      // _monkeyMapping[3] shows genes attribute inside the returning CryptoMonkey object     
-      expect(_monkeyMapping[3]).to.equal(genes0[i]);
-      //}
+    // verify monkey genes are the same from our genes0 array 
+    // skipping zero monkey created by constructor, starting with Token ID 1
+    for (let i = 1; i < _totalSupply2; i++) {
+      let _monkeyMapping = await monkeyContract.allMonkeysArray(i);
+      
+      if(i > 0){
+     
+      // _monkeyMapping[3] shows genes attribute inside the returning CryptoMonkey object
+      // comparison has to be i-1 to allow for zero monkey difference         
+      expect(_monkeyMapping[3]).to.equal(genes0[i-1]);
+      }
     } 
 
     // GEN0_Limit reached, next creation should fail
     await expect(monkeyContract.createGen0Monkey(genes0[0])).to.be.revertedWith(
       "Maximum amount of gen 0 monkeys reached"
-    );    */
+    );    
 
   });
 
-  it.skip("Test 3: BREED Monkey", async () => {
+  it("Test 3: BREED Monkey", async () => {
 
     // breeding 3 NFT monkeys
     const breed1answer = await monkeyContract.breed(1, 2); // tokenId 12
@@ -172,14 +186,9 @@ function findAccountForAddress(addressToLookup){
     const breed3answer = await monkeyContract.breed(5, 6); // tokenId 14  
 
     const NFTwTokenID12 = await monkeyContract.getMonkeyDetails(12);
-    let result12 = bigNumberToNumber(NFTwTokenID12.genes);
-    
     const NFTwTokenID13 = await monkeyContract.getMonkeyDetails(13);
-    let result13 = ethers.utils.formatUnits(NFTwTokenID13.genes, 0);   
-
     const NFTwTokenID14 = await monkeyContract.getMonkeyDetails(14);
-    let result14 = ethers.utils.formatUnits(NFTwTokenID14.genes, 0);   
-
+    
     // balanceOf accounts[0] should be 15
     expect(await monkeyContract.balanceOf(accounts[0].address)).to.equal(15);
 
@@ -187,12 +196,9 @@ function findAccountForAddress(addressToLookup){
     expect(await monkeyContract.totalSupply()).to.equal(15);
   });
 
-  it.skip("Test 4: Checking tokenId ", async () =>{
-    let _monkeyId = await monkeyContract.findMonkeyIdsOfAddress(accounts[0].address);
-    for(i in _monkeyId){
-      let _result = ethers.utils.formatUnits(_monkeyId[i], 0);
-      //console.log("Token IDs of accounts[0]", _result);
-    }    
+  it("Test 4: Checking tokenId ", async () =>{    
+    const test4Acc0ExpectedArr = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
+    await expectNFTArray(accounts[0].address, test4Acc0ExpectedArr);
   });
 
   it.skip("Test 5: TRANSFER 2 gen0 monkeys from account[0] to account[1]", async () => {    
@@ -200,12 +206,16 @@ function findAccountForAddress(addressToLookup){
     const _totalSupply = await monkeyContract.totalSupply();
     console.log(`total#[${_totalSupply}]`)
 
+    // transferring NFTs with Token IDs 2 and 3 
     await monkeyContract.transferFrom(accounts[0].address, accounts[1].address, 2);
     expect(await monkeyContract.balanceOf(accounts[1].address)).to.equal(1);
-
-    await monkeyContract.transferFrom(accounts[0].address, accounts[1].address, 3);
+    await monkeyContract.transferFrom(accounts[0].address, accounts[1].address, 3);    
     expect(await monkeyContract.balanceOf(accounts[1].address)).to.equal(2);
+    
+    let expectedArray = [0,1,14,13,4,5,6,7,8,9,10,11,12]
+    await expectNFTArray(accounts[0].address, expectedArray);
 
+    /*
     // xxxx only console logging so far
     let _monkeyId = await monkeyContract.findMonkeyIdsOfAddress(accounts[1].address);
     for(i in _monkeyId){
@@ -220,9 +230,9 @@ function findAccountForAddress(addressToLookup){
       resultArray.push(_result1);      
     }
     console.log("Token IDs of accounts[0], should be 0-14, without 2 and 3: ", resultArray);
+    */
 
-    let expectedArray = [0,1,14,13,4,5,6,7,8,9,10,11,12]
-    await expectNFTArray(accounts[0].address, expectedArray);
+    
 
     /*for (let count = 0; count < resultArray.length; count ++) {
     expect(resultArray[count]).to.equal(ethers.utils.formatUnits(expectedArray[count], 0));

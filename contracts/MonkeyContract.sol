@@ -55,9 +55,9 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
 
     // ARRAYS
 
-    // This is an array that holds all CryptoMonkeys. 
-    // Their position in that array IS their tokenId.
-    // they never get deleted here, array only grows and keeps track of them all.
+    // This is an array that holds all CryptoMonkey NFTs. 
+    // IMPORTANT: Their position in this array IS their Token ID.
+    // They never get deleted here, array only grows and keeps track of them all.
     CryptoMonkey[] public allMonkeysArray;
 
     // EVENTS
@@ -148,7 +148,7 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
             ownedTokenIDs[indexToCheck] = foundNFT;  
 
             // xxxx
-            console.log("index: %s, ownedTokenIDs array entry: %s", indexToCheck, ownedTokenIDs[indexToCheck]);              
+            console.log("index: %s, ownedTokenIDs array entry: %s", indexToCheck, ownedTokenIDs[indexToCheck]);                        
         } 
 
         return ownedTokenIDs;        
