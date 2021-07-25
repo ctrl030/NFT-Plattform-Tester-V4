@@ -225,9 +225,9 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
         address _to,
         uint256 _tokenId
     ) public nonReentrant whenNotPaused{
-        require(_to != address(0), "transfer to the zero address");
-        require(_to != address(this), "Can't transfer NFTs to this contract");
-        require (_isApprovedOrOwner(_msgSender(), _tokenId) == true);   
+        require(_to != address(0), "MonkeyContract: transfer to the zero address not allowed, burn NFT instead");
+        require(_to != address(this), "MonkeyContract: Can't transfer NFTs to this contract");
+        require (_isApprovedOrOwner(_msgSender(), _tokenId) == true, "MonkeyContract: Can't transfer this NFT without being owner, approved or operator");   
 
         safeTransferFrom(_from, _to, _tokenId);        
     }
