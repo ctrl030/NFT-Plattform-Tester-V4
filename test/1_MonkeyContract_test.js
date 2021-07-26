@@ -39,6 +39,73 @@ describe("Monkey Contract, testing", () => {
     return convertedNumber;
   }
 
+  function fromETHtoWEI (numberInETH) {
+    const numberInWEI = web3.utils.toWei(numberInETH);
+    return numberInWEI;
+  }
+  
+  function fromWEItoETH (numberInWEI) {
+    const numberInETH = web3.utils.fromWei(numberInWEI);    
+    return numberInETH;    
+  }
+
+  async function createOfferForMultTokens(seller, priceInETHArray, tokenIdArray){ 
+
+    console.log('tokenIdArray: ', tokenIdArray);
+
+    for (let _index in tokenIdArray) {
+      const tokenIdNow = tokenIdArray[_index];
+      let priceInWEIForTokenId =  web3.utils.toWei(priceInETHArray[_index].toString()) ;
+
+      console.log('_index: ', _index, 'tokenIdNow: ', tokenIdNow, 'priceInWEIForTokenId: ', priceInWEIForTokenId);
+
+      await monkeyMarketContract.connect(seller).setOffer(priceInWEIForTokenId, tokenIdNow); 
+      
+    }    
+  }
+
+  async function showTokenIDsOnSale(){ 
+
+    console.log('Tokens IDs now on sale:');
+    let allOffersNow = await monkeyMarketContract.getAllTokenOnSale();
+    for (_u in allOffersNow) {
+     console.log(bigNumberToNumber(allOffersNow[_u]));
+    }
+  }
+
+  async function checkOfferForTokenID( tokenIdToCheck ){
+
+    const offerForToken =  await monkeyMarketContract.getOffer(tokenIdToCheck);
+
+    //   bignumber etc
+
+    let tokenSeller = offerForToken.seller;
+    let tokenPrice = fromWEItoETH(bigNumberToNumber(offerForToken.price));
+    let tokenIdInOffer = bigNumberToNumber(offerForToken.tokenId);
+    let offerActive = offerForToken.active;
+    let offerArrayIndex = bigNumberToNumber(offerForToken.index);
+    /*
+    console.log(
+      'tokenIdToCheck', tokenIdToCheck,
+      'tokenIdInOffer', tokenIdInOffer,
+      'tokenSeller', tokenSeller,
+      'tokenPrice', tokenPrice,      
+      'offerActive', offerActive,
+      'offerArrayIndex', offerArrayIndex
+    )*/
+
+    return {
+      tokenIdToCheck,
+      tokenIdInOffer,
+      tokenSeller,
+      tokenPrice,      
+      offerActive,
+      offerArrayIndex
+    }
+  }
+
+  
+
   // show X - functions to console.log
 
   // for testing/debugging: looking up the accounts[] variable for an address
@@ -80,9 +147,13 @@ describe("Monkey Contract, testing", () => {
       accountToAddressArray[accIndex] = accounts[accIndex].address;        
     }       
 
-    // Deploy MonkeyContract to testnet
+    // Deploy MonkeyContract to hardhat testnet
     _contractInstance = await ethers.getContractFactory('MonkeyContract');
-    monkeyContract = await _contractInstance.deploy(accountToAddressArray);     
+    monkeyContract = await _contractInstance.deploy(accountToAddressArray);  
+    
+    // deploying the MonkeyMarketplace smart contract and sending it the address of the MonkeyContract for the marketplace constructor
+    _marketContractInstance = await ethers.getContractFactory('MonkeyMarketplace');
+    monkeyMarketContract = await _marketContractInstance.deploy(monkeyContract.address);     
   })  
   
   it('Test 1: State variables are as expected: owner, contract address, NFT name, NFT symbol, gen 0 limit, gen 0 total, total supply', async() => { 
@@ -210,7 +281,7 @@ describe("Monkey Contract, testing", () => {
   it('Test 6: accounts[0] should give accounts[1] operator status and transfer, incl. reverting transfer without operator', async() => {  
     
     // Giving operator status 
-    await  monkeyContract.setApprovalForAll(accounts[1].address, true);
+    await monkeyContract.setApprovalForAll(accounts[1].address, true);
     expect(await monkeyContract.isApprovedForAll(accounts[0].address, accounts[1].address)).to.equal(true);
 
     // Taking away operator status 
@@ -346,8 +417,8 @@ describe("Monkey Contract, testing", () => {
       
       //console.log('token ID', test22BFirstParentIdCounter, ' has generation:', bigNumberToNumber((await monkeyContract.getMonkeyDetails(test22BFirstParentIdCounter)).generation )) ;
       //console.log('token ID', test22BSecondParentIdCounter, ' has generation:', bigNumberToNumber((await monkeyContract.getMonkeyDetails(test22BSecondParentIdCounter)).generation )) ;
-      expect(bigNumberToNumber( (await monkeyContract.getMonkeyDetails(test22BFirstParentIdCounter)).generation) ).to.equal(bigNumberToNumber(test22Bgeneration));
-      expect(bigNumberToNumber( (await monkeyContract.getMonkeyDetails(test22BSecondParentIdCounter)).generation) ).to.equal(bigNumberToNumber(test22Bgeneration));   
+      expect( (await monkeyContract.getMonkeyDetails(test22BFirstParentIdCounter)).generation ).to.equal(test22Bgeneration);
+      expect( (await monkeyContract.getMonkeyDetails(test22BSecondParentIdCounter)).generation ).to.equal(test22Bgeneration);   
       test22Bgeneration++;        
       
     }      
@@ -361,400 +432,440 @@ describe("Monkey Contract, testing", () => {
     await expectNFTArray(accounts[2].address, test10Acc2ExpectedArr);
     
   });
-});
 
-/*
-// Market contract Hardhat test with openzeppelin, Truffle and web3
-contract("MonkeyContract + MonkeyMarketplace with HH", accounts => {
-
-// Before running the tests, deploying a new MonkeyMarketplace 
-before(async()=> {
-  // deploying the marketplace smart contract: MonkeyMarketplace and getting the address of the MonkeyContract for the marketplace constructor
-  monkeyMarketplaceHHInstance = await MonkeyMarketplace.new(monkeyContractHHInstance.address);    
- 
-});
-
-describe('Testing correct deployment', () => {
-  
-  it('Test 23: Market should know main contract address', async () => {        
-    const mainContractAddressSavedInMarket = await monkeyMarketplaceHHInstance.returnMonkeyContract();      
-    assert.equal(mainContractAddressSavedInMarket, monkeyContractHHInstance.address);
-    assertionCounter++;     
+  it('Test 23: Market should know main contract address', async () => {            
+    const mainContractAddressSavedInMarket = await monkeyMarketContract.savedMainContractAddress();     
+    expect(mainContractAddressSavedInMarket).to.equal(monkeyContract.address);       
   }) 
 
   it('Test 24: accounts[0] should be deployer of main contract', async () => {        
-    const monkeyContractHHInstanceOwner = await monkeyContractHHInstance.contractOwner()      
-    assert.equal(monkeyContractHHInstanceOwner, accounts[0]);
-    assertionCounter++;
+    const monkeyContractOwner = await monkeyContract.owner();      
+    expect(monkeyContractOwner).to.equal(accounts[0].address);     
+    
   }) 
   
   it('Test 25: accounts[0] should be deployer of market contract', async () => {        
-    const marketContractHHInstanceOwner = await monkeyMarketplaceHHInstance.contractOwner()     
-    assert.equal(marketContractHHInstanceOwner, accounts[0]);
-    assertionCounter++;
-  }) 
-
-});
-
-describe('Testing creating and deleting offers', () => {
-  
-  it('Test 26: accounts[2] and accounts[4] should give market contract operator status', async () => {    
-
-    giveMarketOperatorAndAssertAndCount(accounts[2]);
-    giveMarketOperatorAndAssertAndCount(accounts[4]);
-  }) 
-
-  it('Test 27: accounts[2] should create 4 offers, all gen0 (Token IDs: 1,2,3,4), prices in ETH same as Token ID', async () => {    
-
-    for (let test27Counter = 1; test27Counter <= 4; test27Counter++) {        
-
-      let priceInETHTest27 = test27Counter.toString(); 
-
-      let priceInWEIForCallingTest27 = web3.utils.toWei(priceInETHTest27); 
-
-      await monkeyMarketplaceHHInstance.setOffer(priceInWEIForCallingTest27, test27Counter, {from: accounts[2]});        
-
-      await assertOfferDetailsForTokenID(test27Counter, true, accounts[2], priceInETHTest27 );        
-    }
-
-    const offersArray = [1, 2, 3, 4];
-    await assertAmountOfActiveOffersAndCount(4, offersArray);
+    const marketContractOwner = await monkeyMarketContract.owner(); 
+    expect(marketContractOwner).to.equal(accounts[0].address);     
    
+    await getNFTArray(accounts[0].address);
+    await getNFTArray(accounts[1].address);
+    await getNFTArray(accounts[2].address);
+    await getNFTArray(accounts[3].address);
+    await getNFTArray(accounts[4].address);
   }) 
 
-  it('Test 28: accounts[4] should create 4 offers, 2x gen6 (Token IDs: 35, 36) and 2x gen7 (Token IDs: 37, 38)', async () => {  
-    for (let test28Counter = 35; test28Counter <= 38; test28Counter++) {        
-      await createOfferAndAssert (test28Counter, test28Counter, accounts[4]);         
-    }     
-    const offersArray = [1, 2, 3, 4, 35, 36, 37, 38];
-    await assertAmountOfActiveOffersAndCount(8, offersArray);
+  it('Test 26: accounts[1] and accounts[2] should give market contract operator status', async () => {    
+
+    await monkeyContract.connect(accounts[1]).setApprovalForAll(monkeyMarketContract.address, true);
+    await monkeyContract.connect(accounts[2]).setApprovalForAll(monkeyMarketContract.address, true);
+
+    expect(await monkeyContract.isApprovedForAll(accounts[1].address, monkeyMarketContract.address)).to.equal(true);
+    expect(await monkeyContract.isApprovedForAll(accounts[2].address, monkeyMarketContract.address)).to.equal(true);
+
+    //'Test 27: accounts[2] should create 4 offers (Token IDs: 6,7, 19, 26)  prices in ETH same as Token ID
+
+    //await monkeyMarketContract.connect(accounts[2]).setOffer(priceInWEIForTokenId, 6);
+
+    let pricesInETHTest26 = [6.5,7.2,0.000001,260];
+    let tokenIDsToSellT26 = [6,7,19,26]; 
+
+    await createOfferForMultTokens(accounts[2], pricesInETHTest26, tokenIDsToSellT26);
+
+    await showTokenIDsOnSale();
+
+    let resultForOffer = await checkOfferForTokenID( 7 );
+
+    let tokID = resultForOffer.tokenIdToCheck;
+    let tokPrice = resultForOffer.tokenPrice;
+    
+    console.log(tokID, tokPrice);
+
+
+    
+
+
+    let priceInWEIForTokenId = (16).toString();
+
+
+    /*
+    let tokensToSell = [6,7,19,26];
+
+    for (_index in tokensToSell) {
+      const tokenIdNow = (tokensToSell[_index]).toString();
+      let priceInWEIForTokenId =  web3.utils.toWei(tokenIdNow) ; 
+      //console.log()
+      await monkeyMarketContract.connect(accounts[2]).setOffer(priceInWEIForTokenId, tokenIdNow);  
+    }
+
+    let allOffersNow = await monkeyMarketContract.getAllTokenOnSale();
+    for (_u in allOffersNow) {
+      console.log(bigNumberToNumber(allOffersNow[_u]));
+    }*/
+
   }) 
 
-  it('Test 29: accounts[2] should delete 1 active offer (Token ID: 4), now 7 active offers should exist (Token IDs: 1,2,3 and 35,36,37,38) ', async () => {  
-    await monkeyMarketplaceHHInstance.removeOffer(4, {from: accounts[2]});
-    await expectNoActiveOfferAndCount(4); 
-    const offersArray = [1, 2, 3, 35, 36, 37, 38];
-    await assertAmountOfActiveOffersAndCount(7, offersArray);
-  }) 
 
-  it('Test 30: accounts[4] should delete 1 active offer (Token ID: 35), now 6 active offers should exist (Token IDs: 1,2,3 and 36,37,38)', async () => {  
-    await monkeyMarketplaceHHInstance.removeOffer(35, {from: accounts[4]});
-    await expectNoActiveOfferAndCount(35);    
-    const offersArray = [1, 2, 3, 36, 37, 38];
-    await assertAmountOfActiveOffersAndCount(6, offersArray);
-  }) 
 });
 
-describe('Testing buying and full market functionality', () => { 
 
-  it('Test 31: accounts[5] should buy 3 NFTs (Token IDs: 1,2,3) from accounts[2], now 3 active offers should exist (Token IDs: 36,37,38)', async () => {  
-      for (let buyCountT31 = 1; buyCountT31 <= 3; buyCountT31++) { 
 
-      // balance in WEI before buy
-      const balanceInWEIBefore = await web3.eth.getBalance(accounts[5]);       
-      //console.log('accounts[5] has', parseInt(balanceInWEIBefore), 'WEI before buying Token ID', buyCountT31) 
 
-      // balance in ETH before buy
-      //const balanceInETHBefore = web3.utils.fromWei(await web3.eth.getBalance(accounts[5]), 'ether'); 
-      //console.log('accounts[5] has', parseInt(balanceInETHBefore), 'ether before buying Token ID', buyCountT31)          
 
-      // setting Token ID to price in ETH (1=>1), calculated into WEI
-      let buyCountT31asString = buyCountT31.toString();
-      let t31priceToPayInWEI = web3.utils.toWei(buyCountT31asString);  
-      
-      console.log('loop and tokenID', buyCountT31, 'has the price in WEI:', t31priceToPayInWEI, 'and this balance:', balanceInWEIBefore);
-      
-      await monkeyMarketplaceHHInstance.buyMonkey(buyCountT31, {from: accounts[5], value: t31priceToPayInWEI});  
-      
-      const balanceBeforeInWEIasBN = new BN(balanceInWEIBefore);
-      const priceInWEIasBN = new BN(t31priceToPayInWEI);
-      const expectedBalanceAfterInWEIasBN = balanceBeforeInWEIasBN.sub(priceInWEIasBN);
 
-      //console.log('loop and tokenID', buyCountT31, 'has the expectedBalanceAfterInWEI:', expectedBalanceAfterInWEI);
-      //console.log('loop and tokenID', buyCountT31, 'has the balanceBeforeInWEIasBN:');
-      //console.log(balanceBeforeInWEIasBN);
 
-      //console.log('loop and tokenID', buyCountT31, 'has the priceInWEIasBN:');
-      //console.log(priceInWEIasBN);        
-      
-      console.log('priceInWEIasBN');
-      console.log(priceInWEIasBN);
-      console.log('balanceBeforeInWEIasBN');
-      console.log(balanceBeforeInWEIasBN);
-      console.log('expectedBalanceAfterInWEIasBN');
-      console.log(expectedBalanceAfterInWEIasBN);
+/*
 
-      //console.log('parseInt of it is:');
-      //const expectedBalanceAfterInWEIParsed = Number(expectedBalanceAfterInWEIasBN)
-      //console.log(expectedBalanceAfterInWEIParsed);
+it('Test 27: accounts[2] should create 4 offers, all gen0 (Token IDs: 1,2,3,4), prices in ETH same as Token ID', async () => {    
 
-      //const expectedBalanceAfterInWEIasString = expectedBalanceAfterInWEI.toString();       
-      
-      await assertBalanceAsBN(accounts[5], expectedBalanceAfterInWEIasBN);
+  for (let test27Counter = 1; test27Counter <= 4; test27Counter++) {        
 
-      // balance after buy
-      //const balanceInWEIAfter = await web3.eth.getBalance(accounts[5]); 
-      //console.log('accounts[5] has', parseInt(balanceInWEIAfter), 'WEI after buying Token ID', buyCountT31)       
-      //console.log('accounts[5] has', parseInt(balanceInETHAfter), 'ether after buying Token ID', buyCountT31)
-      
-    }      
-    const offersArray = [36,37,38];
-    await assertAmountOfActiveOffersAndCount(3, offersArray);
+    let priceInETHTest27 = test27Counter.toString(); 
 
-    const account0ArrayToAssert = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    await assertAllFourTrackersCorrect (accounts[0], 0,  account0ArrayToAssert);
+    let priceInWEIForCallingTest27 = web3.utils.toWei(priceInETHTest27); 
 
-    const account1ArrayToAssert = [0, 0, 8, 9, 10, 11, 12];
-    await assertAllFourTrackersCorrect (accounts[1], 5,  account1ArrayToAssert);
+    await monkeyMarketplaceHHInstance.setOffer(priceInWEIForCallingTest27, test27Counter, {from: accounts[2]});        
 
-    const account2ArrayToAssert = [0,0,0, 4, 0, 7];
-    await assertAllFourTrackersCorrect (accounts[2], 2,  account2ArrayToAssert);
+    await assertOfferDetailsForTokenID(test27Counter, true, accounts[2], priceInETHTest27 );        
+  }
 
-    const account3ArrayToAssert = [0,0,13,0,0,16,17,18,19,20,21,22,23,24,25,26];
-    await assertAllFourTrackersCorrect (accounts[3], 12,  account3ArrayToAssert);
+  const offersArray = [1, 2, 3, 4];
+  await assertAmountOfActiveOffersAndCount(4, offersArray);
+
+}) 
+
+it('Test 28: accounts[4] should create 4 offers, 2x gen6 (Token IDs: 35, 36) and 2x gen7 (Token IDs: 37, 38)', async () => {  
+  for (let test28Counter = 35; test28Counter <= 38; test28Counter++) {        
+    await createOfferAndAssert (test28Counter, test28Counter, accounts[4]);         
+  }     
+  const offersArray = [1, 2, 3, 4, 35, 36, 37, 38];
+  await assertAmountOfActiveOffersAndCount(8, offersArray);
+}) 
+
+it('Test 29: accounts[2] should delete 1 active offer (Token ID: 4), now 7 active offers should exist (Token IDs: 1,2,3 and 35,36,37,38) ', async () => {  
+  await monkeyMarketplaceHHInstance.removeOffer(4, {from: accounts[2]});
+  await expectNoActiveOfferAndCount(4); 
+  const offersArray = [1, 2, 3, 35, 36, 37, 38];
+  await assertAmountOfActiveOffersAndCount(7, offersArray);
+}) 
+
+it('Test 30: accounts[4] should delete 1 active offer (Token ID: 35), now 6 active offers should exist (Token IDs: 1,2,3 and 36,37,38)', async () => {  
+  await monkeyMarketplaceHHInstance.removeOffer(35, {from: accounts[4]});
+  await expectNoActiveOfferAndCount(35);    
+  const offersArray = [1, 2, 3, 36, 37, 38];
+  await assertAmountOfActiveOffersAndCount(6, offersArray);
+}) 
+
+
+it('Test 31: accounts[5] should buy 3 NFTs (Token IDs: 1,2,3) from accounts[2], now 3 active offers should exist (Token IDs: 36,37,38)', async () => {  
+    for (let buyCountT31 = 1; buyCountT31 <= 3; buyCountT31++) { 
+
+    // balance in WEI before buy
+    const balanceInWEIBefore = await web3.eth.getBalance(accounts[5]);       
+    //console.log('accounts[5] has', parseInt(balanceInWEIBefore), 'WEI before buying Token ID', buyCountT31) 
+
+    // balance in ETH before buy
+    //const balanceInETHBefore = web3.utils.fromWei(await web3.eth.getBalance(accounts[5]), 'ether'); 
+    //console.log('accounts[5] has', parseInt(balanceInETHBefore), 'ether before buying Token ID', buyCountT31)          
+
+    // setting Token ID to price in ETH (1=>1), calculated into WEI
+    let buyCountT31asString = buyCountT31.toString();
+    let t31priceToPayInWEI = web3.utils.toWei(buyCountT31asString);  
     
-    const account4ArrayToAssert = [5, 6, 14, 15, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38];
-    await assertAllFourTrackersCorrect (accounts[4], 16,  account4ArrayToAssert);
-
-    const account5ArrayToAssert = [1, 2, 3];
-    await assertAllFourTrackersCorrect (accounts[5], 3,  account5ArrayToAssert);
-
-
-  })   
-
-  it('Test 32: accounts[1] should buy 2 NFTs (Token IDs: 36, 37) from accounts[4], now 1 active offer should exist (Token ID: 38)', async () => {  
-    for (let buyCountT32 = 36; buyCountT32 <= 37; buyCountT32++) { 
-      let largeCountingNrT32 = buyCountT32.toString();
-      let t32priceToPayInWEI = web3.utils.toWei(largeCountingNrT32);
-      await monkeyMarketplaceHHInstance.buyMonkey(buyCountT32, {from: accounts[1], value: t32priceToPayInWEI});
-    }
-    const offersArray = [38];
-    await assertAmountOfActiveOffersAndCount(1, offersArray);
-
-    const account0ArrayToAssert = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    await assertAllFourTrackersCorrect (accounts[0], 0,  account0ArrayToAssert);
-
-    const account1ArrayToAssert = [0, 0, 8, 9, 10, 11, 12, 36, 37];
-    await assertAllFourTrackersCorrect (accounts[1], 7,  account1ArrayToAssert);
-
-    const account2ArrayToAssert = [0,0,0, 4, 0, 7];
-    await assertAllFourTrackersCorrect (accounts[2], 2,  account2ArrayToAssert);
-
-    const account3ArrayToAssert = [0,0,13,0,0,16,17,18,19,20,21,22,23,24,25,26];
-    await assertAllFourTrackersCorrect (accounts[3], 12,  account3ArrayToAssert);
+    console.log('loop and tokenID', buyCountT31, 'has the price in WEI:', t31priceToPayInWEI, 'and this balance:', balanceInWEIBefore);
     
-    const account4ArrayToAssert = [5, 6, 14, 15, 27, 28, 29, 30, 31, 32, 33, 34, 35, 0, 0, 38];
-    await assertAllFourTrackersCorrect (accounts[4], 14,  account4ArrayToAssert);
+    await monkeyMarketplaceHHInstance.buyMonkey(buyCountT31, {from: accounts[5], value: t31priceToPayInWEI});  
+    
+    const balanceBeforeInWEIasBN = new BN(balanceInWEIBefore);
+    const priceInWEIasBN = new BN(t31priceToPayInWEI);
+    const expectedBalanceAfterInWEIasBN = balanceBeforeInWEIasBN.sub(priceInWEIasBN);
 
-    const account5ArrayToAssert = [1, 2, 3];
-    await assertAllFourTrackersCorrect (accounts[5], 3,  account5ArrayToAssert);
-  }) 
+    //console.log('loop and tokenID', buyCountT31, 'has the expectedBalanceAfterInWEI:', expectedBalanceAfterInWEI);
+    //console.log('loop and tokenID', buyCountT31, 'has the balanceBeforeInWEIasBN:');
+    //console.log(balanceBeforeInWEIasBN);
+
+    //console.log('loop and tokenID', buyCountT31, 'has the priceInWEIasBN:');
+    //console.log(priceInWEIasBN);        
+    
+    console.log('priceInWEIasBN');
+    console.log(priceInWEIasBN);
+    console.log('balanceBeforeInWEIasBN');
+    console.log(balanceBeforeInWEIasBN);
+    console.log('expectedBalanceAfterInWEIasBN');
+    console.log(expectedBalanceAfterInWEIasBN);
+
+    //console.log('parseInt of it is:');
+    //const expectedBalanceAfterInWEIParsed = Number(expectedBalanceAfterInWEIasBN)
+    //console.log(expectedBalanceAfterInWEIParsed);
+
+    //const expectedBalanceAfterInWEIasString = expectedBalanceAfterInWEI.toString();       
+    
+    await assertBalanceAsBN(accounts[5], expectedBalanceAfterInWEIasBN);
+
+    // balance after buy
+    //const balanceInWEIAfter = await web3.eth.getBalance(accounts[5]); 
+    //console.log('accounts[5] has', parseInt(balanceInWEIAfter), 'WEI after buying Token ID', buyCountT31)       
+    //console.log('accounts[5] has', parseInt(balanceInETHAfter), 'ether after buying Token ID', buyCountT31)
+    
+  }      
+  const offersArray = [36,37,38];
+  await assertAmountOfActiveOffersAndCount(3, offersArray);
+
+  const account0ArrayToAssert = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  await assertAllFourTrackersCorrect (accounts[0], 0,  account0ArrayToAssert);
+
+  const account1ArrayToAssert = [0, 0, 8, 9, 10, 11, 12];
+  await assertAllFourTrackersCorrect (accounts[1], 5,  account1ArrayToAssert);
+
+  const account2ArrayToAssert = [0,0,0, 4, 0, 7];
+  await assertAllFourTrackersCorrect (accounts[2], 2,  account2ArrayToAssert);
+
+  const account3ArrayToAssert = [0,0,13,0,0,16,17,18,19,20,21,22,23,24,25,26];
+  await assertAllFourTrackersCorrect (accounts[3], 12,  account3ArrayToAssert);
   
-  it('Test 33: accounts[3] should breed NFTs (IDs:25,26) creating 3 gen2 NFTs (Token IDs:39,40,41) create offers, now 4 active offers (Token ID: 38,39,40,41)', async () => {  
-    // breeding NFTs with Token IDs 25 and 26 three times, creating gen2 Token IDs 39,40,41       
-    for (let index22B1 = 1; index22B1 <= 3; index22B1++) {
-      await monkeyContractHHInstance.breed(25, 26, {from: accounts[3]});         
-    }        
+  const account4ArrayToAssert = [5, 6, 14, 15, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38];
+  await assertAllFourTrackersCorrect (accounts[4], 16,  account4ArrayToAssert);
 
-    // Giving operator status 
-    giveMarketOperatorAndAssertAndCount(accounts[3]);
+  const account5ArrayToAssert = [1, 2, 3];
+  await assertAllFourTrackersCorrect (accounts[5], 3,  account5ArrayToAssert);
+
+
+})   
+
+it('Test 32: accounts[1] should buy 2 NFTs (Token IDs: 36, 37) from accounts[4], now 1 active offer should exist (Token ID: 38)', async () => {  
+  for (let buyCountT32 = 36; buyCountT32 <= 37; buyCountT32++) { 
+    let largeCountingNrT32 = buyCountT32.toString();
+    let t32priceToPayInWEI = web3.utils.toWei(largeCountingNrT32);
+    await monkeyMarketplaceHHInstance.buyMonkey(buyCountT32, {from: accounts[1], value: t32priceToPayInWEI});
+  }
+  const offersArray = [38];
+  await assertAmountOfActiveOffersAndCount(1, offersArray);
+
+  const account0ArrayToAssert = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  await assertAllFourTrackersCorrect (accounts[0], 0,  account0ArrayToAssert);
+
+  const account1ArrayToAssert = [0, 0, 8, 9, 10, 11, 12, 36, 37];
+  await assertAllFourTrackersCorrect (accounts[1], 7,  account1ArrayToAssert);
+
+  const account2ArrayToAssert = [0,0,0, 4, 0, 7];
+  await assertAllFourTrackersCorrect (accounts[2], 2,  account2ArrayToAssert);
+
+  const account3ArrayToAssert = [0,0,13,0,0,16,17,18,19,20,21,22,23,24,25,26];
+  await assertAllFourTrackersCorrect (accounts[3], 12,  account3ArrayToAssert);
+  
+  const account4ArrayToAssert = [5, 6, 14, 15, 27, 28, 29, 30, 31, 32, 33, 34, 35, 0, 0, 38];
+  await assertAllFourTrackersCorrect (accounts[4], 14,  account4ArrayToAssert);
+
+  const account5ArrayToAssert = [1, 2, 3];
+  await assertAllFourTrackersCorrect (accounts[5], 3,  account5ArrayToAssert);
+}) 
+
+it('Test 33: accounts[3] should breed NFTs (IDs:25,26) creating 3 gen2 NFTs (Token IDs:39,40,41) create offers, now 4 active offers (Token ID: 38,39,40,41)', async () => {  
+  // breeding NFTs with Token IDs 25 and 26 three times, creating gen2 Token IDs 39,40,41       
+  for (let index22B1 = 1; index22B1 <= 3; index22B1++) {
+    await monkeyContractHHInstance.breed(25, 26, {from: accounts[3]});         
+  }        
+
+  // Giving operator status 
+  giveMarketOperatorAndAssertAndCount(accounts[3]);
+
+  for (let test33Counter = 39; test33Counter <= 41; test33Counter++) {        
+    // args: price in ETH, Token ID, account
+    await createOfferAndAssert (test33Counter, test33Counter, accounts[3]);    
+  }
+  const offersArray = [38,39,40,41];
+  await assertAmountOfActiveOffersAndCount(4, offersArray);
+
+  const account0ArrayToAssert = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  await assertAllFourTrackersCorrect (accounts[0], 0,  account0ArrayToAssert);
+
+  const account1ArrayToAssert = [0, 0, 8, 9, 10, 11, 12, 36, 37];
+  await assertAllFourTrackersCorrect (accounts[1], 7,  account1ArrayToAssert);
+
+  const account2ArrayToAssert = [0,0,0, 4, 0, 7];
+  await assertAllFourTrackersCorrect (accounts[2], 2,  account2ArrayToAssert);
+
+  const account3ArrayToAssert = [0,0,13,0,0,16,17,18,19,20,21,22,23,24,25,26, 39, 40, 41];
+  await assertAllFourTrackersCorrect (accounts[3], 15,  account3ArrayToAssert);
+  
+  const account4ArrayToAssert = [5, 6, 14, 15, 27, 28, 29, 30, 31, 32, 33, 34, 35, 0, 0, 38];
+  await assertAllFourTrackersCorrect (accounts[4], 14,  account4ArrayToAssert);
+
+  const account5ArrayToAssert = [1, 2, 3];
+  await assertAllFourTrackersCorrect (accounts[5], 3,  account5ArrayToAssert);
+}) 
+
+it('Test 34: accounts[1] should create 2 offers (Token IDs:36,37) and accounts[5] 2 offers (Token IDs:1,2), now 8 active offers (Token IDs: 38,39,40,41,36,37,1,2)', async () => {  
+  
+  // Giving operator status 
+  giveMarketOperatorAndAssertAndCount(accounts[1]);
+  giveMarketOperatorAndAssertAndCount(accounts[5]);
+  
+  // accounts[1] creating 2 offers (Token IDs:36,37)
+  for (let test34Counter2 = 36; test34Counter2 <= 37; test34Counter2++) {        
+    // args: price in ETH, Token ID, account
+    await createOfferAndAssert (test34Counter2, test34Counter2, accounts[1]);            
+  }      
+  
+  // accounts[5] creating 2 offers (Token IDs:1,2)
+  for (let test34Counter1 = 1; test34Counter1 <= 2; test34Counter1++) {        
+    // args: price in ETH, Token ID, account
+    await createOfferAndAssert (test34Counter1, test34Counter1, accounts[5]); 
+  }
+
+  const offersArray = [38,39,40,41,36,37,1,2];
+  await assertAmountOfActiveOffersAndCount(8, offersArray);
+}) 
+
+it('Test 35: accounts[4] should buy back 2 NFTs (Token IDs: 36, 37) from accounts[1], now 6 active offers should exist (Token IDs: 1,2,38,39,40,41)', async () => {  
+  for (let buyCountT35 = 36; buyCountT35 <= 37; buyCountT35++) { 
+
+    let largeCountingNrT35 = buyCountT35.toString();
+    let t35priceToPayInWEI = web3.utils.toWei(largeCountingNrT35);
+    await monkeyMarketplaceHHInstance.buyMonkey(buyCountT35, {from: accounts[4], value: t35priceToPayInWEI});
+  }
+  const offersArray = [38,39,40,41, 1,2];
+  await assertAmountOfActiveOffersAndCount(6, offersArray);
+
+  const account0ArrayToAssert = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  await assertAllFourTrackersCorrect (accounts[0], 0,  account0ArrayToAssert);
+
+  const account1ArrayToAssert = [0, 0, 8, 9, 10, 11, 12, 0, 0];
+  await assertAllFourTrackersCorrect (accounts[1], 5,  account1ArrayToAssert);
+
+  const account2ArrayToAssert = [0, 0, 0, 4, 0, 7];
+  await assertAllFourTrackersCorrect (accounts[2], 2,  account2ArrayToAssert);
+
+  const account3ArrayToAssert = [0, 0, 13, 0, 0, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 39, 40, 41];
+  await assertAllFourTrackersCorrect (accounts[3], 15,  account3ArrayToAssert);
+  
+  const account4ArrayToAssert = [5, 6, 14, 15, 27, 28, 29, 30, 31, 32, 33, 34, 35, 0, 0, 38, 36, 37];
+  await assertAllFourTrackersCorrect (accounts[4], 16,  account4ArrayToAssert);
+
+  const account5ArrayToAssert = [1, 2, 3];
+  await assertAllFourTrackersCorrect (accounts[5], 3,  account5ArrayToAssert);
+})     
+
+it('Test 36: accounts[6] (Token IDs 1) and accounts[7] (Token ID 2) should buy from accounts[5], now 4 active offers (Token IDs: 38,39,40,41) ', async () => {  
+  await monkeyMarketplaceHHInstance.buyMonkey(1, {from: accounts[6], value: web3.utils.toWei('1')});   
+  await monkeyMarketplaceHHInstance.buyMonkey(2, {from: accounts[7], value: web3.utils.toWei('2')});   
+  const offersArray = [38,39,40,41];
+  await assertAmountOfActiveOffersAndCount(4, offersArray);
+  
+  const account0ArrayToAssert = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  await assertAllFourTrackersCorrect (accounts[0], 0,  account0ArrayToAssert);
+
+  const account1ArrayToAssert = [0, 0, 8, 9, 10, 11, 12, 0, 0];
+  await assertAllFourTrackersCorrect (accounts[1], 5,  account1ArrayToAssert);
+
+  const account2ArrayToAssert = [0, 0, 0, 4, 0, 7];
+  await assertAllFourTrackersCorrect (accounts[2], 2,  account2ArrayToAssert);
+
+  const account3ArrayToAssert = [0, 0, 13, 0, 0, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 39, 40, 41];
+  await assertAllFourTrackersCorrect (accounts[3], 15,  account3ArrayToAssert);
+  
+  const account4ArrayToAssert = [5, 6, 14, 15, 27, 28, 29, 30, 31, 32, 33, 34, 35, 0, 0, 38, 36, 37];
+  await assertAllFourTrackersCorrect (accounts[4], 16,  account4ArrayToAssert);
+
+  const account5ArrayToAssert = [0, 0, 3];
+  await assertAllFourTrackersCorrect (accounts[5], 1,  account5ArrayToAssert);
+
+  const account6ArrayToAssert = [1];
+  await assertAllFourTrackersCorrect (accounts[6], 1,  account6ArrayToAssert);
+
+  const account7ArrayToAssert = [2];
+  await assertAllFourTrackersCorrect (accounts[7], 1,  account7ArrayToAssert);
+}) 
+
+it('Test 37: accounts[6] creates 1 offer with decimal amount for Token ID 1, which is then bought by accounts[8], now still 4 active offers (Token IDs: 38,39,40,41) ', async () => {  
+  // Giving operator status 
+  giveMarketOperatorAndAssertAndCount(accounts[6]);   
+  await createOfferAndAssert(2.456, 1, accounts[6]);
+  await monkeyMarketplaceHHInstance.buyMonkey(1, {from: accounts[8], value: web3.utils.toWei('2.456')});         
+  const offersArray = [38,39,40,41];
+  await assertAmountOfActiveOffersAndCount(4, offersArray);
+
+  const account0ArrayToAssert = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  await assertAllFourTrackersCorrect (accounts[0], 0,  account0ArrayToAssert);
+
+  const account1ArrayToAssert = [0, 0, 8, 9, 10, 11, 12, 0, 0];
+  await assertAllFourTrackersCorrect (accounts[1], 5,  account1ArrayToAssert);
+
+  const account2ArrayToAssert = [0, 0, 0, 4, 0, 7];
+  await assertAllFourTrackersCorrect (accounts[2], 2,  account2ArrayToAssert);
+
+  const account3ArrayToAssert = [0, 0, 13, 0, 0, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 39, 40, 41];
+  await assertAllFourTrackersCorrect (accounts[3], 15,  account3ArrayToAssert);
+  
+  const account4ArrayToAssert = [5, 6, 14, 15, 27, 28, 29, 30, 31, 32, 33, 34, 35, 0, 0, 38, 36, 37];
+  await assertAllFourTrackersCorrect (accounts[4], 16,  account4ArrayToAssert);
+
+  const account5ArrayToAssert = [0, 0, 3];
+  await assertAllFourTrackersCorrect (accounts[5], 1,  account5ArrayToAssert);
+
+  const account6ArrayToAssert = [0];
+  await assertAllFourTrackersCorrect (accounts[6], 0,  account6ArrayToAssert);
+
+  const account7ArrayToAssert = [2];
+  await assertAllFourTrackersCorrect (accounts[7], 1,  account7ArrayToAssert);
+
+  const account8ArrayToAssert = [1];
+  await assertAllFourTrackersCorrect (accounts[8], 1,  account8ArrayToAssert);
+
+
+}) 
+
+it('Test 38: accounts[7] creates 1 offer with decimal amount under 1 for Token ID 1, which is then bought by accounts[8], now still 4 active offers (Token IDs: 38,39,40,41) ', async () => {  
+  // Giving operator status 
+  giveMarketOperatorAndAssertAndCount(accounts[7]);   
+  await createOfferAndAssert(0.21, 2, accounts[7]);
+  const offersArrayBetween = [38,39,40,41,2];
+  await assertAmountOfActiveOffersAndCount(5, offersArrayBetween);
+  await monkeyMarketplaceHHInstance.buyMonkey(2, {from: accounts[8], value: web3.utils.toWei('0.21')});  
+  // showArrayOfAccount(accounts[8]);  
+  const offersArray = [38,39,40,41];
+  await assertAmountOfActiveOffersAndCount(4, offersArray);
+
+  const account0ArrayToAssert = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  await assertAllFourTrackersCorrect (accounts[0], 0,  account0ArrayToAssert);
+
+  const account1ArrayToAssert = [0, 0, 8, 9, 10, 11, 12, 0, 0];
+  await assertAllFourTrackersCorrect (accounts[1], 5,  account1ArrayToAssert);
+
+  const account2ArrayToAssert = [0, 0, 0, 4, 0, 7];
+  await assertAllFourTrackersCorrect (accounts[2], 2,  account2ArrayToAssert);
+
+  const account3ArrayToAssert = [0, 0, 13, 0, 0, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 39, 40, 41];
+  await assertAllFourTrackersCorrect (accounts[3], 15,  account3ArrayToAssert);
+  
+  const account4ArrayToAssert = [5, 6, 14, 15, 27, 28, 29, 30, 31, 32, 33, 34, 35, 0, 0, 38, 36, 37];
+  await assertAllFourTrackersCorrect (accounts[4], 16,  account4ArrayToAssert);
+
+  const account5ArrayToAssert = [0, 0, 3];
+  await assertAllFourTrackersCorrect (accounts[5], 1,  account5ArrayToAssert);
+
+  const account6ArrayToAssert = [0];
+  await assertAllFourTrackersCorrect (accounts[6], 0,  account6ArrayToAssert);
+
+  const account7ArrayToAssert = [0];
+  await assertAllFourTrackersCorrect (accounts[7], 0,  account7ArrayToAssert);
+
+  const account8ArrayToAssert = [1, 2];
+  await assertAllFourTrackersCorrect (accounts[8], 2,  account8ArrayToAssert);
+}); 
+
+it('Test 39makeLast: should verify the intergrity between trackers _monkeyIdsAndTheirOwnersMapping and MonkeyIdPositionsMapping for all NFTs', async () => {  
+  
+  await assertPosIntegrAllNFTs();
+}); 
+
+
+it('Test 40: should show how many assertions in testing were done', async () => {  
+
+  console.log('During these Hardhat tests, at least', assertionCounter , 'assertions were succesfully proven correct.')
+
+
+}); */
+    
+    
  
-    for (let test33Counter = 39; test33Counter <= 41; test33Counter++) {        
-      // args: price in ETH, Token ID, account
-      await createOfferAndAssert (test33Counter, test33Counter, accounts[3]);    
-    }
-    const offersArray = [38,39,40,41];
-    await assertAmountOfActiveOffersAndCount(4, offersArray);
-
-    const account0ArrayToAssert = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    await assertAllFourTrackersCorrect (accounts[0], 0,  account0ArrayToAssert);
-
-    const account1ArrayToAssert = [0, 0, 8, 9, 10, 11, 12, 36, 37];
-    await assertAllFourTrackersCorrect (accounts[1], 7,  account1ArrayToAssert);
-
-    const account2ArrayToAssert = [0,0,0, 4, 0, 7];
-    await assertAllFourTrackersCorrect (accounts[2], 2,  account2ArrayToAssert);
-
-    const account3ArrayToAssert = [0,0,13,0,0,16,17,18,19,20,21,22,23,24,25,26, 39, 40, 41];
-    await assertAllFourTrackersCorrect (accounts[3], 15,  account3ArrayToAssert);
-    
-    const account4ArrayToAssert = [5, 6, 14, 15, 27, 28, 29, 30, 31, 32, 33, 34, 35, 0, 0, 38];
-    await assertAllFourTrackersCorrect (accounts[4], 14,  account4ArrayToAssert);
-
-    const account5ArrayToAssert = [1, 2, 3];
-    await assertAllFourTrackersCorrect (accounts[5], 3,  account5ArrayToAssert);
-  }) 
-  
-  it('Test 34: accounts[1] should create 2 offers (Token IDs:36,37) and accounts[5] 2 offers (Token IDs:1,2), now 8 active offers (Token IDs: 38,39,40,41,36,37,1,2)', async () => {  
-    
-    // Giving operator status 
-    giveMarketOperatorAndAssertAndCount(accounts[1]);
-    giveMarketOperatorAndAssertAndCount(accounts[5]);
-    
-    // accounts[1] creating 2 offers (Token IDs:36,37)
-    for (let test34Counter2 = 36; test34Counter2 <= 37; test34Counter2++) {        
-      // args: price in ETH, Token ID, account
-      await createOfferAndAssert (test34Counter2, test34Counter2, accounts[1]);            
-    }      
-    
-    // accounts[5] creating 2 offers (Token IDs:1,2)
-    for (let test34Counter1 = 1; test34Counter1 <= 2; test34Counter1++) {        
-      // args: price in ETH, Token ID, account
-      await createOfferAndAssert (test34Counter1, test34Counter1, accounts[5]); 
-    }
-  
-    const offersArray = [38,39,40,41,36,37,1,2];
-    await assertAmountOfActiveOffersAndCount(8, offersArray);
-  }) 
-  
-  it('Test 35: accounts[4] should buy back 2 NFTs (Token IDs: 36, 37) from accounts[1], now 6 active offers should exist (Token IDs: 1,2,38,39,40,41)', async () => {  
-    for (let buyCountT35 = 36; buyCountT35 <= 37; buyCountT35++) { 
-
-      let largeCountingNrT35 = buyCountT35.toString();
-      let t35priceToPayInWEI = web3.utils.toWei(largeCountingNrT35);
-      await monkeyMarketplaceHHInstance.buyMonkey(buyCountT35, {from: accounts[4], value: t35priceToPayInWEI});
-    }
-    const offersArray = [38,39,40,41, 1,2];
-    await assertAmountOfActiveOffersAndCount(6, offersArray);
-
-    const account0ArrayToAssert = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    await assertAllFourTrackersCorrect (accounts[0], 0,  account0ArrayToAssert);
-
-    const account1ArrayToAssert = [0, 0, 8, 9, 10, 11, 12, 0, 0];
-    await assertAllFourTrackersCorrect (accounts[1], 5,  account1ArrayToAssert);
-
-    const account2ArrayToAssert = [0, 0, 0, 4, 0, 7];
-    await assertAllFourTrackersCorrect (accounts[2], 2,  account2ArrayToAssert);
-
-    const account3ArrayToAssert = [0, 0, 13, 0, 0, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 39, 40, 41];
-    await assertAllFourTrackersCorrect (accounts[3], 15,  account3ArrayToAssert);
-    
-    const account4ArrayToAssert = [5, 6, 14, 15, 27, 28, 29, 30, 31, 32, 33, 34, 35, 0, 0, 38, 36, 37];
-    await assertAllFourTrackersCorrect (accounts[4], 16,  account4ArrayToAssert);
-
-    const account5ArrayToAssert = [1, 2, 3];
-    await assertAllFourTrackersCorrect (accounts[5], 3,  account5ArrayToAssert);
-  })     
-  
-  it('Test 36: accounts[6] (Token IDs 1) and accounts[7] (Token ID 2) should buy from accounts[5], now 4 active offers (Token IDs: 38,39,40,41) ', async () => {  
-    await monkeyMarketplaceHHInstance.buyMonkey(1, {from: accounts[6], value: web3.utils.toWei('1')});   
-    await monkeyMarketplaceHHInstance.buyMonkey(2, {from: accounts[7], value: web3.utils.toWei('2')});   
-    const offersArray = [38,39,40,41];
-    await assertAmountOfActiveOffersAndCount(4, offersArray);
-    
-    const account0ArrayToAssert = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    await assertAllFourTrackersCorrect (accounts[0], 0,  account0ArrayToAssert);
-
-    const account1ArrayToAssert = [0, 0, 8, 9, 10, 11, 12, 0, 0];
-    await assertAllFourTrackersCorrect (accounts[1], 5,  account1ArrayToAssert);
-
-    const account2ArrayToAssert = [0, 0, 0, 4, 0, 7];
-    await assertAllFourTrackersCorrect (accounts[2], 2,  account2ArrayToAssert);
-
-    const account3ArrayToAssert = [0, 0, 13, 0, 0, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 39, 40, 41];
-    await assertAllFourTrackersCorrect (accounts[3], 15,  account3ArrayToAssert);
-    
-    const account4ArrayToAssert = [5, 6, 14, 15, 27, 28, 29, 30, 31, 32, 33, 34, 35, 0, 0, 38, 36, 37];
-    await assertAllFourTrackersCorrect (accounts[4], 16,  account4ArrayToAssert);
-
-    const account5ArrayToAssert = [0, 0, 3];
-    await assertAllFourTrackersCorrect (accounts[5], 1,  account5ArrayToAssert);
-
-    const account6ArrayToAssert = [1];
-    await assertAllFourTrackersCorrect (accounts[6], 1,  account6ArrayToAssert);
-
-    const account7ArrayToAssert = [2];
-    await assertAllFourTrackersCorrect (accounts[7], 1,  account7ArrayToAssert);
-  }) 
-  
-  it('Test 37: accounts[6] creates 1 offer with decimal amount for Token ID 1, which is then bought by accounts[8], now still 4 active offers (Token IDs: 38,39,40,41) ', async () => {  
-    // Giving operator status 
-    giveMarketOperatorAndAssertAndCount(accounts[6]);   
-    await createOfferAndAssert(2.456, 1, accounts[6]);
-    await monkeyMarketplaceHHInstance.buyMonkey(1, {from: accounts[8], value: web3.utils.toWei('2.456')});         
-    const offersArray = [38,39,40,41];
-    await assertAmountOfActiveOffersAndCount(4, offersArray);
-
-    const account0ArrayToAssert = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    await assertAllFourTrackersCorrect (accounts[0], 0,  account0ArrayToAssert);
-
-    const account1ArrayToAssert = [0, 0, 8, 9, 10, 11, 12, 0, 0];
-    await assertAllFourTrackersCorrect (accounts[1], 5,  account1ArrayToAssert);
-
-    const account2ArrayToAssert = [0, 0, 0, 4, 0, 7];
-    await assertAllFourTrackersCorrect (accounts[2], 2,  account2ArrayToAssert);
-
-    const account3ArrayToAssert = [0, 0, 13, 0, 0, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 39, 40, 41];
-    await assertAllFourTrackersCorrect (accounts[3], 15,  account3ArrayToAssert);
-    
-    const account4ArrayToAssert = [5, 6, 14, 15, 27, 28, 29, 30, 31, 32, 33, 34, 35, 0, 0, 38, 36, 37];
-    await assertAllFourTrackersCorrect (accounts[4], 16,  account4ArrayToAssert);
-
-    const account5ArrayToAssert = [0, 0, 3];
-    await assertAllFourTrackersCorrect (accounts[5], 1,  account5ArrayToAssert);
-
-    const account6ArrayToAssert = [0];
-    await assertAllFourTrackersCorrect (accounts[6], 0,  account6ArrayToAssert);
-
-    const account7ArrayToAssert = [2];
-    await assertAllFourTrackersCorrect (accounts[7], 1,  account7ArrayToAssert);
-
-    const account8ArrayToAssert = [1];
-    await assertAllFourTrackersCorrect (accounts[8], 1,  account8ArrayToAssert);
-
-
-  }) 
-  
-  it('Test 38: accounts[7] creates 1 offer with decimal amount under 1 for Token ID 1, which is then bought by accounts[8], now still 4 active offers (Token IDs: 38,39,40,41) ', async () => {  
-    // Giving operator status 
-    giveMarketOperatorAndAssertAndCount(accounts[7]);   
-    await createOfferAndAssert(0.21, 2, accounts[7]);
-    const offersArrayBetween = [38,39,40,41,2];
-    await assertAmountOfActiveOffersAndCount(5, offersArrayBetween);
-    await monkeyMarketplaceHHInstance.buyMonkey(2, {from: accounts[8], value: web3.utils.toWei('0.21')});  
-    // showArrayOfAccount(accounts[8]);  
-    const offersArray = [38,39,40,41];
-    await assertAmountOfActiveOffersAndCount(4, offersArray);
-
-    const account0ArrayToAssert = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    await assertAllFourTrackersCorrect (accounts[0], 0,  account0ArrayToAssert);
-
-    const account1ArrayToAssert = [0, 0, 8, 9, 10, 11, 12, 0, 0];
-    await assertAllFourTrackersCorrect (accounts[1], 5,  account1ArrayToAssert);
-
-    const account2ArrayToAssert = [0, 0, 0, 4, 0, 7];
-    await assertAllFourTrackersCorrect (accounts[2], 2,  account2ArrayToAssert);
-
-    const account3ArrayToAssert = [0, 0, 13, 0, 0, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 39, 40, 41];
-    await assertAllFourTrackersCorrect (accounts[3], 15,  account3ArrayToAssert);
-    
-    const account4ArrayToAssert = [5, 6, 14, 15, 27, 28, 29, 30, 31, 32, 33, 34, 35, 0, 0, 38, 36, 37];
-    await assertAllFourTrackersCorrect (accounts[4], 16,  account4ArrayToAssert);
-
-    const account5ArrayToAssert = [0, 0, 3];
-    await assertAllFourTrackersCorrect (accounts[5], 1,  account5ArrayToAssert);
-
-    const account6ArrayToAssert = [0];
-    await assertAllFourTrackersCorrect (accounts[6], 0,  account6ArrayToAssert);
-
-    const account7ArrayToAssert = [0];
-    await assertAllFourTrackersCorrect (accounts[7], 0,  account7ArrayToAssert);
-
-    const account8ArrayToAssert = [1, 2];
-    await assertAllFourTrackersCorrect (accounts[8], 2,  account8ArrayToAssert);
-  }); 
-
-  it('Test 39makeLast: should verify the intergrity between trackers _monkeyIdsAndTheirOwnersMapping and MonkeyIdPositionsMapping for all NFTs', async () => {  
-    
-    await assertPosIntegrAllNFTs();
-  }); 
-  
-
-  it('Test 40: should show how many assertions in testing were done', async () => {  
-
-    console.log('During these Hardhat tests, at least', assertionCounter , 'assertions were succesfully proven correct.')
-
-
-  }); 
-  
-})*/

@@ -16,6 +16,8 @@ contract MonkeyMarketplace is Ownable, ReentrancyGuard, Pausable {
   
   IMonkeyContract private _ERC721;
 
+  address public savedMainContractAddress;
+
   event MarketTransaction(string TxType, address owner, uint256 tokenId);
 
   event monkeySold (address seller, address buyer, uint256 price, uint256 tokenId); 
@@ -38,7 +40,8 @@ contract MonkeyMarketplace is Ownable, ReentrancyGuard, Pausable {
   constructor (address _constructorMonkeyContractAddress) {
     _ERC721 = IMonkeyContract(_constructorMonkeyContractAddress);
     require(_ERC721.getMonkeyContractAddress() == _constructorMonkeyContractAddress, "CONSTRUCTOR: Monkey contract address must be the same.");
-  }
+    savedMainContractAddress = _constructorMonkeyContractAddress;
+  } 
  
   /**
   * Get the details about a offer for _tokenId. Throws an error if there is no active offer for _tokenId.
@@ -68,7 +71,7 @@ contract MonkeyMarketplace is Ownable, ReentrancyGuard, Pausable {
   * Returns an empty array if none exist.
   // adds a Token ID to the 'result' array each time the loop finds an active offer in the offersArray  
   */
-  function getAllTokenOnSale() public view returns(uint256[] memory listOfOffers) {  
+  function getAllTokenOnSale() public view returns(uint256[] memory listOfTokenIdsOnSale) {  
 
     // counting active offers, needed to create correct hardcoded length of 'result' array
     uint256 numberOfActiveOffers;
@@ -117,12 +120,13 @@ contract MonkeyMarketplace is Ownable, ReentrancyGuard, Pausable {
   * Requirement: Marketplace contract (this) needs to be an approved operator when the offer is created.
   */    
   function setOffer(uint256 _price, uint256 _tokenId) public whenNotPaused {    
+
     //  Only the owner of _tokenId can create an offer.
-    require( _ERC721.ownerOf(_tokenId) == msg.sender, "Only monkey owner can set offer for this tokenId");
+    require( _ERC721.ownerOf(_tokenId) == msg.sender, "Only monkey owner can set offer for this tokenId" );
     //Marketplace contract (this) needs to be an approved operator when the offer is created.
-    require(_ERC721.isApprovedForAll(msg.sender, address(this)), "Marketplace address needs operator status from monkey owner.");
+    require( _ERC721.isApprovedForAll(msg.sender, address(this)), "Marketplace address needs operator status from monkey owner." );
     //Offer price must be greater than 0
-    require(_price > 0, "offer price must be greater than 0");
+    require(_price >= 1000000000000, "offer price must be at least 1000000000000 WEI, i.e. 0.000001 ETH ");
     
     Offer memory tokenOffer = tokenIdToOfferMapping[_tokenId];
 
