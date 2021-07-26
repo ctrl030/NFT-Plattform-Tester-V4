@@ -349,23 +349,37 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
         return newGeneSequence;      
     }
 
-    function _calcGeneration (uint256 _parent1Id, uint256 _parent2Id) internal view returns(uint256) {
+    function _calcGeneration (uint256 _parent1Id, uint256 _parent2Id) internal view returns(uint256) {        
 
         uint256 _generationOfParent1 = allMonkeysArray[_parent1Id].generation; 
         uint256 _generationOfParent2 = allMonkeysArray[_parent2Id].generation; 
 
-        // new generation is average of parents generations plus 1
-        // for ex. 1 + 5 = 6, 6/2 = 3, 3+1=4, newGeneration would be 4
+        require(_generationOfParent1 < 1000 && _generationOfParent2 < 1000, "Parents cannot breed above gen999");
 
-        // rounding numbers if odd, for ex. 1+2=3, 3*10 = 30, 30/2 = 15
-        // 15 % 10 = 5, 5>0, 15+5=20
-        // 20 / 10 = 2, 2+1 = 3
-        // newGeneration = 3
-        uint256 _roundingNumbers = (((_generationOfParent1 + _generationOfParent2) * 10) / 2); 
-        if (_roundingNumbers % 10 > 0) {
-            _roundingNumbers + 5;      
+        // if both parents have same gen, child will be parents' gen+1  
+
+        // if they have different gen, new gen is average of parents gen plus 2
+        // for ex. 1 + 5 = 6, 6/2 = 3, 3+2 = 5, newGeneration would be 5
+
+        // rounding numbers down if odd: 
+        // for ex. 1+2=3, 3*10 = 30, 30/2 = 15
+        // 15 % 10 = 5, 5>0, 15-5=10
+        // 10 / 10 = 1, 1+2 = 3
+        // newGeneration = 3       
+
+        uint256 newGeneration;
+
+        if (_generationOfParent1 != _generationOfParent2) {
+            uint256 _roundingNumbers = (((_generationOfParent1 + _generationOfParent2) * 10) / 2); 
+            if (_roundingNumbers % 10 > 0) {
+                _roundingNumbers - 5;      
+            }
+            newGeneration = (_roundingNumbers / 10 ) + 2;            
         }
-        uint256 newGeneration = (_roundingNumbers / 10 ) + 1;
+        
+        else {
+            newGeneration = ((_generationOfParent1 + _generationOfParent2) / 2) + 1;              
+        }
 
         return newGeneration;
     }
