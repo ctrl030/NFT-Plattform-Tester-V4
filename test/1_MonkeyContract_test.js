@@ -51,13 +51,13 @@ describe("Monkey Contract, testing", () => {
 
   async function createMultiOffersAndVerify(seller, priceInETHArray, tokenIdArray){ 
 
-    console.log('tokenIdArray: ', tokenIdArray);
+    console.log('Will now create offers for Token IDs: ', tokenIdArray);
 
     for (let _index in tokenIdArray) {
       const tokenIdNow = tokenIdArray[_index];
-      let priceInWEIForTokenId =  web3.utils.toWei(priceInETHArray[_index].toString()) ;
+      const priceInWEIForTokenId =  web3.utils.toWei(priceInETHArray[_index].toString()) ;
 
-      console.log('_index: ', _index, 'tokenIdNow: ', tokenIdNow, 'priceInWEIForTokenId: ', priceInWEIForTokenId);
+      console.log('_index: ', _index, 'tokenIdNow: ', tokenIdNow, 'price: ', priceInETHArray[_index]);
 
       // setting the offer
       await monkeyMarketContract.connect(seller).setOffer(priceInWEIForTokenId, tokenIdNow); 
@@ -69,56 +69,32 @@ describe("Monkey Contract, testing", () => {
       const tokenIdInOffer = bigNumberToNumber(offerForToken.tokenId);
       const offerActive = offerForToken.active;
       const offerArrayIndex = bigNumberToNumber(offerForToken.index);
-
       expect(tokenSeller).to.equal(seller.address);  
       expect(Number(tokenPrice)).to.equal(priceInETHArray[_index]);  
       expect(Number(tokenIdInOffer)).to.equal(tokenIdNow); 
       expect(offerActive).to.equal(true);
 
       // querying the offersArray directly (onlyOwner is needed)
-
-      let offerArrayDirectResult = await monkeyMarketContract.showOfferArrayEntry(offerArrayIndex);
-
+      const offerArrayDirectResult = await monkeyMarketContract.showOfferArrayEntry(offerArrayIndex);
       expect(offerArrayDirectResult.active).to.equal(true);
       expect(offerArrayDirectResult.tokenId).to.equal(tokenIdInOffer);
-
-
-
-
-
       
     }    
   }
 
-  async function showTokenIDsOnSale(){ 
-
-    console.log('Tokens IDs now on sale:');
-    let allOffersNow = await monkeyMarketContract.getAllTokenOnSale();
-    for (_u in allOffersNow) {
-     console.log(bigNumberToNumber(allOffersNow[_u]));
-    }
-  }
-
+  async function verifyAmountOfActiveOffers(expectedAmount) {
+    const allActiveOffersArray = await monkeyMarketContract.getAllTokenOnSale();
+    expect(allActiveOffersArray.length).to.equal(expectedAmount);
+  } 
+  
   async function checkOfferForTokenID( tokenIdToCheck ){
-
-    const offerForToken =  await monkeyMarketContract.getOffer(tokenIdToCheck);
-
+    const offerForToken = await monkeyMarketContract.getOffer(tokenIdToCheck);
     
     let tokenSeller = offerForToken.seller;
     let tokenPrice = fromWEItoETH(bigNumberToNumber(offerForToken.price));
     let tokenIdInOffer = bigNumberToNumber(offerForToken.tokenId);
     let offerActive = offerForToken.active;
-    let offerArrayIndex = bigNumberToNumber(offerForToken.index);
-
-    /*
-    console.log(
-      'tokenIdToCheck', tokenIdToCheck,
-      'tokenIdInOffer', tokenIdInOffer,
-      'tokenSeller', tokenSeller,
-      'tokenPrice', tokenPrice,      
-      'offerActive', offerActive,
-      'offerArrayIndex', offerArrayIndex
-    )*/
+    let offerArrayIndex = bigNumberToNumber(offerForToken.index);    
 
     return {
       tokenIdToCheck,
@@ -128,9 +104,7 @@ describe("Monkey Contract, testing", () => {
       offerActive,
       offerArrayIndex
     }
-  }
-
-  
+  }  
 
   // show X - functions to console.log
 
@@ -143,8 +117,17 @@ describe("Monkey Contract, testing", () => {
         return "Zero address: 0x0000000000000000000000000000000000000000 => i.e. it was burnt"      
       }   
     }  
-  };
- 
+  }; 
+
+  async function showTokenIDsOnSale(){ 
+
+    console.log('Tokens IDs now on sale:');
+    let allOffersNow = await monkeyMarketContract.getAllTokenOnSale();
+    for (_u in allOffersNow) {
+     console.log(bigNumberToNumber(allOffersNow[_u]));
+    }
+  }
+
 
   // 12 genes0
   const genes0 = [
@@ -264,9 +247,9 @@ describe("Monkey Contract, testing", () => {
   it("Test 3: Breeding CryptoMonkey NFTs", async () => {
 
     // breeding 3 NFT monkeys
-    const breed1answer = await monkeyContract.breed(1, 2); // tokenId 12
-    const breed2answer = await monkeyContract.breed(3, 4); // tokenId 13
-    const breed3answer = await monkeyContract.breed(5, 6); // tokenId 14  
+    await monkeyContract.breed(1, 2); // tokenId 12
+    await monkeyContract.breed(3, 4); // tokenId 13
+    await monkeyContract.breed(5, 6); // tokenId 14  
     
     // balanceOf accounts[0] should be 15
     expect(await monkeyContract.balanceOf(accounts[0].address)).to.equal(15);
@@ -435,14 +418,11 @@ describe("Monkey Contract, testing", () => {
 
       // creating 2 NFTs per loop
       for (let index22B = 0; index22B < 2; index22B++) {
-        await monkeyContract.connect(accounts[2]).breed(test22BFirstParentIdCounter, test22BSecondParentIdCounter);
-        //console.log('index22B:', index22B, 'test22BFirstParentIdCounter: ', test22BFirstParentIdCounter, 'test22BSecondParentIdCounter ', test22BSecondParentIdCounter); 
+        await monkeyContract.connect(accounts[2]).breed(test22BFirstParentIdCounter, test22BSecondParentIdCounter);        
       }      
       test22BFirstParentIdCounter = test22BFirstParentIdCounter +2;    
-      test22BSecondParentIdCounter = test22BSecondParentIdCounter+2;
+      test22BSecondParentIdCounter = test22BSecondParentIdCounter+2;      
       
-      //console.log('token ID', test22BFirstParentIdCounter, ' has generation:', bigNumberToNumber((await monkeyContract.getMonkeyDetails(test22BFirstParentIdCounter)).generation )) ;
-      //console.log('token ID', test22BSecondParentIdCounter, ' has generation:', bigNumberToNumber((await monkeyContract.getMonkeyDetails(test22BSecondParentIdCounter)).generation )) ;
       expect( (await monkeyContract.getMonkeyDetails(test22BFirstParentIdCounter)).generation ).to.equal(test22Bgeneration);
       expect( (await monkeyContract.getMonkeyDetails(test22BSecondParentIdCounter)).generation ).to.equal(test22Bgeneration);   
       test22Bgeneration++;        
@@ -459,73 +439,74 @@ describe("Monkey Contract, testing", () => {
     
   });
 
-  it('Test 23: Market should know main contract address', async () => {            
+  it('Test 11: Market should know main contract address', async () => {            
     const mainContractAddressSavedInMarket = await monkeyMarketContract.savedMainContractAddress();     
     expect(mainContractAddressSavedInMarket).to.equal(monkeyContract.address);       
   }) 
 
-  it('Test 24: accounts[0] should be deployer of main contract', async () => {        
+  it('Test 12: accounts[0] should be deployer of main contract', async () => {        
     const monkeyContractOwner = await monkeyContract.owner();      
-    expect(monkeyContractOwner).to.equal(accounts[0].address);     
-    
+    expect(monkeyContractOwner).to.equal(accounts[0].address);
   }) 
   
-  it('Test 25: accounts[0] should be deployer of market contract', async () => {        
+  it('Test 13: accounts[0] should be deployer of market contract', async () => {        
     const marketContractOwner = await monkeyMarketContract.owner(); 
-    expect(marketContractOwner).to.equal(accounts[0].address);     
-   
+    expect(marketContractOwner).to.equal(accounts[0].address);  
+  }) 
+
+  it('Test 14: Creating and deleting offers', async () => { 
+    
+    let pricesInETHTest14Acc2 = [6.5, 7.2, 0.000019, 260];
+    let tokenIDsToSellT14Acc2 = [6, 7, 19, 26]; 
+
+    // REVERT: without market having operator status, accounts[2] tries to create 4 offers
+    await expect(createMultiOffersAndVerify(accounts[2], pricesInETHTest14Acc2, tokenIDsToSellT14Acc2)).to.be.revertedWith(
+      "Marketplace address needs operator status from monkey owner."
+    );    
+
+    // giving operator status and verifying
+    await monkeyContract.connect(accounts[1]).setApprovalForAll(monkeyMarketContract.address, true);
+    await monkeyContract.connect(accounts[2]).setApprovalForAll(monkeyMarketContract.address, true);
+    expect(await monkeyContract.isApprovedForAll(accounts[1].address, monkeyMarketContract.address)).to.equal(true);
+    expect(await monkeyContract.isApprovedForAll(accounts[2].address, monkeyMarketContract.address)).to.equal(true);
+
+    // after giving operator status to market, accounts[2] creates 4 offers (Token IDs: 6, 7, 19, 26), offers are then verified 
+    await createMultiOffersAndVerify(accounts[2], pricesInETHTest14Acc2, tokenIDsToSellT14Acc2);      
+
+    await verifyAmountOfActiveOffers(4);
+
+    //accounts[1] creates 4 offers (Token IDs: 2,3,13,15), offers are then verified 
+    let pricesInETHTest14Acc1 = [2, 3.5, 0.13, 150];
+    let tokenIDsToSellT14Acc1 = [2, 3, 13, 15]; 
+    await createMultiOffersAndVerify(accounts[1], pricesInETHTest14Acc1, tokenIDsToSellT14Acc1);  
+
+    await verifyAmountOfActiveOffers(8);
+    
+    // REVERT: accounts[1] deletes the offer for Token ID 7, though not the owner
+    await expect(monkeyMarketContract.connect(accounts[1]).removeOffer(7)).to.be.revertedWith(
+      "You're not the owner"
+    );
+
+    // accounts[2] deletes the offer for Token ID 7
+    await monkeyMarketContract.connect(accounts[2]).removeOffer(7);
+
+    // REVERT: No active offer for Token ID 7 should exist
+    await expect(monkeyMarketContract.getOffer(7)).to.be.revertedWith(
+      "No active offer for this tokenId."
+    );
+
+    await verifyAmountOfActiveOffers(7);
+
+
+
+    /*
     await getNFTArray(accounts[0].address);
     await getNFTArray(accounts[1].address);
     await getNFTArray(accounts[2].address);
     await getNFTArray(accounts[3].address);
-    await getNFTArray(accounts[4].address);
-  }) 
-
-  it('Test 26: accounts[1] and accounts[2] should give market contract operator status', async () => {    
-
-    await monkeyContract.connect(accounts[1]).setApprovalForAll(monkeyMarketContract.address, true);
-    await monkeyContract.connect(accounts[2]).setApprovalForAll(monkeyMarketContract.address, true);
-
-    expect(await monkeyContract.isApprovedForAll(accounts[1].address, monkeyMarketContract.address)).to.equal(true);
-    expect(await monkeyContract.isApprovedForAll(accounts[2].address, monkeyMarketContract.address)).to.equal(true);
-
-    //'Test 27: accounts[2] should create 4 offers (Token IDs: 6,7, 19, 26)  prices in ETH same as Token ID
-
-    //await monkeyMarketContract.connect(accounts[2]).setOffer(priceInWEIForTokenId, 6);
-
-    let pricesInETHTest26 = [6.5,7.2,0.000001,260];
-    let tokenIDsToSellT26 = [6,7,19,26]; 
-
-    await createMultiOffersAndVerify(accounts[2], pricesInETHTest26, tokenIDsToSellT26);
-
-    //await showTokenIDsOnSale();
-
-    //let offerForTokenId7 = await checkOfferForTokenID( 7 );
-
-    //let tokID = resultForOffer.tokenIdToCheck;
-    //let tokPrice = resultForOffer.tokenPrice;
-    
-    //console.log(tokID, tokPrice);
-    //console.log(offerForTokenId7);
-
-
-    /*
-    let tokensToSell = [6,7,19,26];
-
-    for (_index in tokensToSell) {
-      const tokenIdNow = (tokensToSell[_index]).toString();
-      let priceInWEIForTokenId =  web3.utils.toWei(tokenIdNow) ; 
-      //console.log()
-      await monkeyMarketContract.connect(accounts[2]).setOffer(priceInWEIForTokenId, tokenIdNow);  
-    }
-
-    let allOffersNow = await monkeyMarketContract.getAllTokenOnSale();
-    for (_u in allOffersNow) {
-      console.log(bigNumberToNumber(allOffersNow[_u]));
-    }*/
+    await getNFTArray(accounts[4].address);*/
 
   }) 
-
 
 });
 
@@ -536,47 +517,6 @@ describe("Monkey Contract, testing", () => {
 
 
 /*
-
-it('Test 27: accounts[2] should create 4 offers, all gen0 (Token IDs: 1,2,3,4), prices in ETH same as Token ID', async () => {    
-
-  for (let test27Counter = 1; test27Counter <= 4; test27Counter++) {        
-
-    let priceInETHTest27 = test27Counter.toString(); 
-
-    let priceInWEIForCallingTest27 = web3.utils.toWei(priceInETHTest27); 
-
-    await monkeyMarketplaceHHInstance.setOffer(priceInWEIForCallingTest27, test27Counter, {from: accounts[2]});        
-
-    await assertOfferDetailsForTokenID(test27Counter, true, accounts[2], priceInETHTest27 );        
-  }
-
-  const offersArray = [1, 2, 3, 4];
-  await assertAmountOfActiveOffersAndCount(4, offersArray);
-
-}) 
-
-it('Test 28: accounts[4] should create 4 offers, 2x gen6 (Token IDs: 35, 36) and 2x gen7 (Token IDs: 37, 38)', async () => {  
-  for (let test28Counter = 35; test28Counter <= 38; test28Counter++) {        
-    await createOfferAndAssert (test28Counter, test28Counter, accounts[4]);         
-  }     
-  const offersArray = [1, 2, 3, 4, 35, 36, 37, 38];
-  await assertAmountOfActiveOffersAndCount(8, offersArray);
-}) 
-
-it('Test 29: accounts[2] should delete 1 active offer (Token ID: 4), now 7 active offers should exist (Token IDs: 1,2,3 and 35,36,37,38) ', async () => {  
-  await monkeyMarketplaceHHInstance.removeOffer(4, {from: accounts[2]});
-  await expectNoActiveOfferAndCount(4); 
-  const offersArray = [1, 2, 3, 35, 36, 37, 38];
-  await assertAmountOfActiveOffersAndCount(7, offersArray);
-}) 
-
-it('Test 30: accounts[4] should delete 1 active offer (Token ID: 35), now 6 active offers should exist (Token IDs: 1,2,3 and 36,37,38)', async () => {  
-  await monkeyMarketplaceHHInstance.removeOffer(35, {from: accounts[4]});
-  await expectNoActiveOfferAndCount(35);    
-  const offersArray = [1, 2, 3, 36, 37, 38];
-  await assertAmountOfActiveOffersAndCount(6, offersArray);
-}) 
-
 
 it('Test 31: accounts[5] should buy 3 NFTs (Token IDs: 1,2,3) from accounts[2], now 3 active offers should exist (Token IDs: 36,37,38)', async () => {  
     for (let buyCountT31 = 1; buyCountT31 <= 3; buyCountT31++) { 
