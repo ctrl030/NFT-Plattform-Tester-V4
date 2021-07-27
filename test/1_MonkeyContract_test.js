@@ -49,7 +49,7 @@ describe("Monkey Contract, testing", () => {
     return numberInETH;    
   }
 
-  async function createOfferForMultTokens(seller, priceInETHArray, tokenIdArray){ 
+  async function createMultiOffersAndVerify(seller, priceInETHArray, tokenIdArray){ 
 
     console.log('tokenIdArray: ', tokenIdArray);
 
@@ -59,7 +59,33 @@ describe("Monkey Contract, testing", () => {
 
       console.log('_index: ', _index, 'tokenIdNow: ', tokenIdNow, 'priceInWEIForTokenId: ', priceInWEIForTokenId);
 
+      // setting the offer
       await monkeyMarketContract.connect(seller).setOffer(priceInWEIForTokenId, tokenIdNow); 
+
+      // querying the offer and comparing if everything went as expected
+      const offerForToken =  await monkeyMarketContract.getOffer(tokenIdNow);
+      const tokenSeller = offerForToken.seller;
+      const tokenPrice = fromWEItoETH(bigNumberToNumber(offerForToken.price));
+      const tokenIdInOffer = bigNumberToNumber(offerForToken.tokenId);
+      const offerActive = offerForToken.active;
+      const offerArrayIndex = bigNumberToNumber(offerForToken.index);
+
+      expect(tokenSeller).to.equal(seller.address);  
+      expect(Number(tokenPrice)).to.equal(priceInETHArray[_index]);  
+      expect(Number(tokenIdInOffer)).to.equal(tokenIdNow); 
+      expect(offerActive).to.equal(true);
+
+      // querying the offersArray directly (onlyOwner is needed)
+
+      let offerArrayDirectResult = await monkeyMarketContract.showOfferArrayEntry(offerArrayIndex);
+
+      expect(offerArrayDirectResult.active).to.equal(true);
+      expect(offerArrayDirectResult.tokenId).to.equal(tokenIdInOffer);
+
+
+
+
+
       
     }    
   }
@@ -77,13 +103,13 @@ describe("Monkey Contract, testing", () => {
 
     const offerForToken =  await monkeyMarketContract.getOffer(tokenIdToCheck);
 
-    //   bignumber etc
-
+    
     let tokenSeller = offerForToken.seller;
     let tokenPrice = fromWEItoETH(bigNumberToNumber(offerForToken.price));
     let tokenIdInOffer = bigNumberToNumber(offerForToken.tokenId);
     let offerActive = offerForToken.active;
     let offerArrayIndex = bigNumberToNumber(offerForToken.index);
+
     /*
     console.log(
       'tokenIdToCheck', tokenIdToCheck,
@@ -470,22 +496,17 @@ describe("Monkey Contract, testing", () => {
     let pricesInETHTest26 = [6.5,7.2,0.000001,260];
     let tokenIDsToSellT26 = [6,7,19,26]; 
 
-    await createOfferForMultTokens(accounts[2], pricesInETHTest26, tokenIDsToSellT26);
+    await createMultiOffersAndVerify(accounts[2], pricesInETHTest26, tokenIDsToSellT26);
 
-    await showTokenIDsOnSale();
+    //await showTokenIDsOnSale();
 
-    let resultForOffer = await checkOfferForTokenID( 7 );
+    //let offerForTokenId7 = await checkOfferForTokenID( 7 );
 
-    let tokID = resultForOffer.tokenIdToCheck;
-    let tokPrice = resultForOffer.tokenPrice;
+    //let tokID = resultForOffer.tokenIdToCheck;
+    //let tokPrice = resultForOffer.tokenPrice;
     
-    console.log(tokID, tokPrice);
-
-
-    
-
-
-    let priceInWEIForTokenId = (16).toString();
+    //console.log(tokID, tokPrice);
+    //console.log(offerForTokenId7);
 
 
     /*
