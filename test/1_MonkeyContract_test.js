@@ -36,7 +36,7 @@ describe("Monkey Contract, testing", () => {
   async function getETHbalance(adress) {
     const bigNumBalance = await ethers.provider.getBalance(adress);
     const balanceInWEI = bigNumberToNumber(bigNumBalance);
-    const balanceInETH = fromWEItoETH(balanceInWEI);
+    const balanceInETH = Number(fromWEItoETH(balanceInWEI));
     return balanceInETH;
   }
 
@@ -62,7 +62,7 @@ describe("Monkey Contract, testing", () => {
 
     for (let _index in tokenIdArray) {
       const tokenIdNow = tokenIdArray[_index];
-      const priceInWEIForTokenId =  web3.utils.toWei(priceInETHArray[_index].toString()) ;
+      const priceInWEIForTokenId = web3.utils.toWei(priceInETHArray[_index].toString()) ;
 
       console.log('_index: ', _index, 'tokenIdNow: ', tokenIdNow, 'price: ', priceInETHArray[_index]);
 
@@ -330,11 +330,11 @@ describe("Monkey Contract, testing", () => {
     
   });
  
-  it.skip('Test 7: accounts[2] should use safeTransferFrom with sending data and without sending data', async() => {  
+  it('Test 7: accounts[2] should use safeTransferFrom with sending data and without sending data', async() => {  
     
-    await monkeyContract.safeTransferFrom(accounts[0].address, accounts[3].address, 10);  
-    //await monkeyContract.connect(accounts[2]).safeTransferFrom(accounts[0].address, accounts[3].address, 8);
-    //await monkeyContract.connect(accounts[2]).transferFrom(accounts[0].address, accounts[3].address, 8);       
+    //await monkeyContract.safeTransferFrom(accounts[0].address, accounts[3].address, 10);  
+    //await monkeyContract.safeTransferFrom(accounts[0].address, accounts[3].address, 8);
+    //await monkeyContract.transferFrom(accounts[0].address, accounts[3].address, 8);       
     /*
     // checking NFT array of accounts[2]
     expect(await monkeyContract.balanceOf(accounts[2].address)).to.equal(3);
@@ -502,39 +502,102 @@ describe("Monkey Contract, testing", () => {
       "No active offer for this tokenId."
     );
 
-    await verifyAmountOfActiveOffers(7);
+    await verifyAmountOfActiveOffers(7);  
     
+  });
+
+  it('Test 15: "Real world usage" - Buying / selling, interwoven with breeding, creating and deleting offers', async () => {
+
+    // accounts[1] owns these NFTs at this point (all 4 are up for sale)
+    const tokensOwnedByAcc1 = [2, 3, 13, 15];
+    await expectNFTArray(accounts[1].address, tokensOwnedByAcc1);
+
+    // accounts[1] should have 10000 ETH (Hardhat environment starting balance) at this point
+    const balanceBeforeT15Acc1 = await getETHbalance(accounts[1].address); 
+    expect(balanceBeforeT15Acc1).to.equal(10000);
+
+    // accounts[3] owns no NFTs at this point
+    const tokensOwnedByAcc3 = [];
+    await expectNFTArray(accounts[3].address, tokensOwnedByAcc3);
+
+    // accounts[3] should have 10000 ETH (Hardhat environment starting balance) at this point
+    const balanceBeforeT15Acc3 = await getETHbalance(accounts[3].address); 
+    expect(balanceBeforeT15Acc3).to.equal(10000);
+    
+    // accounts[3] buys 3 NFTs from acc1
+    await monkeyMarketContract.connect( accounts[3] ).buyMonkey( 2, {value: ethers.utils.parseEther("2")} );
+    await monkeyMarketContract.connect( accounts[3] ).buyMonkey( 13, {value: ethers.utils.parseEther("0.13")} );
+    await monkeyMarketContract.connect( accounts[3] ).buyMonkey( 15, {value: ethers.utils.parseEther("150")} );
+
+    // accounts[3] should now have 9847.87 ETH
+    const balanceAfterT15Acc3 = await getETHbalance(accounts[3].address);
+    expect(balanceAfterT15Acc3).to.equal((10000-2-0.13-150));
+    console.log('balanceAfterT15Acc3: ', balanceAfterT15Acc3);
+
+    // accounts[3] should now own these three NFTs and in this order in their _ownedTokens mapping 
+    const tokensOwnedAfterByAcc3 = [2,13,15];
+    await expectNFTArray(accounts[3].address, tokensOwnedAfterByAcc3);
+   
+    // accounts[1] should now have 10152.13 ETH
+    const balanceAfterT15Acc1 = await getETHbalance(accounts[1].address); 
+    expect(balanceAfterT15Acc1).to.equal(10000+2+0.13+150);
+    console.log('balanceAfterT15Acc1: ', balanceAfterT15Acc1);
+
+    // accounts[1] should now own this NFT in their _ownedTokens mapping 
+    const tokensOwnedAfterByAcc1 = [3];
+    await expectNFTArray(accounts[1].address, tokensOwnedAfterByAcc1);
+
+    // accounts[4] should buy 3 NFTs from acc2
+    await monkeyMarketContract.connect( accounts[4] ).buyMonkey( 6, {value: ethers.utils.parseEther("6.5")} );   
+    await monkeyMarketContract.connect( accounts[4] ).buyMonkey( 19, {value: ethers.utils.parseEther("0.000019")} );
+    await monkeyMarketContract.connect( accounts[4] ).buyMonkey( 26, {value: ethers.utils.parseEther("260")} );
+
+    // accounts[4] should now have 9733.499981 ETH
+    const balanceAfterT15Acc4 = await getETHbalance(accounts[4].address);
+    expect(balanceAfterT15Acc4).to.equal((10000-6.5-0.000019-260));
+    console.log('balanceAfterT15Acc4: ', balanceAfterT15Acc4);
+
+    // accounts[2] should now have 10266.500019 ETH
+    const balanceAfterT15Acc2 = await getETHbalance(accounts[2].address);
+    expect(balanceAfterT15Acc2).to.equal((10000+6.5+0.000019+260));
+    console.log('balanceAfterT15Acc2: ', balanceAfterT15Acc2);    
+
+    // accounts[3] should breed 4 NFTs
+    await monkeyContract.connect(accounts[3]).breed(2, 15);
+    await monkeyContract.connect(accounts[3]).breed(2, 15);
+    await monkeyContract.connect(accounts[3]).breed(2, 15); 
+    await monkeyContract.connect(accounts[3]).breed(2, 15);
+
+    // accounts[3] should create 4 offers
+    await monkeyContract.connect(accounts[3]).setApprovalForAll(monkeyMarketContract.address, true);
+
+    const tokenIDsToSellT15Acc3 = [28, 29, 2, 15]; 
+    const pricesInETHT15Acc3 = [28, 29, 2, 15];    
+
+    await createMultiOffersAndVerify(accounts[3], pricesInETHT15Acc3, tokenIDsToSellT15Acc3);      
+
+    // accounts[5] should buy 2 NFTs from acc3 (1 orig from acc1 and 1 bred)
+    await monkeyMarketContract.connect( accounts[5] ).buyMonkey( 2, {value: ethers.utils.parseEther("2")} );   
+    await monkeyMarketContract.connect( accounts[5] ).buyMonkey( 29, {value: ethers.utils.parseEther("29")} );
+
+    const balanceAfterT15Acc5 = await getETHbalance(accounts[5].address);
+    expect(balanceAfterT15Acc5).to.equal((10000-2-29));
+
+    const balanceAfterT15Acc3Again = await getETHbalance(accounts[3].address);
+    expect(balanceAfterT15Acc3Again).to.equal((balanceAfterT15Acc3+2+29));   
+
+    // acc2 should buy back 2 NFTS from acc4
+
+
+
     /*
     await getNFTArray(accounts[0].address);
     await getNFTArray(accounts[1].address);
     await getNFTArray(accounts[2].address);
     await getNFTArray(accounts[3].address);
-    await getNFTArray(accounts[4].address);*/
-
-  });
-
-  it('Test 15: Buying / selling  ', async () => { 
-
- 
-
-
-    const balanceBeforeT15Acc3 = await getETHbalance(accounts[3].address); //await ethers.provider.getBalance(accounts[3].address);
-    console.log('balanceBeforeT15Acc3: ', balanceBeforeT15Acc3);
-
-    // accounts[3] should buy 3 NFTs from acc1
-    await monkeyMarketContract.connect( accounts[3] ).buyMonkey( 2, {value: ethers.utils.parseEther("2")} );
-    await monkeyMarketContract.connect( accounts[3] ).buyMonkey( 13, {value: ethers.utils.parseEther("0.13")} );
-    await monkeyMarketContract.connect( accounts[3] ).buyMonkey( 15, {value: ethers.utils.parseEther("150")} );
-
-    await getNFTArray(accounts[3].address);
-
-    // accounts[4] should buy 3 NFTs from acc2
-
-    // accounts[3] should breed 4 NFTs, create offers
-
-    // accounts[5] should buy 2 NFTs from acc3 (1 orig from acc1 and 1 bred)
-
-    // acc2 should buy back 2 NFTS from acc4
+    await getNFTArray(accounts[4].address)
+    await getNFTArray(accounts[5].address)
+    ;*/
 
   })
 
