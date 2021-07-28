@@ -21,7 +21,7 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
     using SafeMath for uint256;
 
     // FOR HARDHAT TESTING
-    //xxxx Receives accounts
+    // Receives accounts
     address[] accountsSaved;
 
     function showAccountForAddress(address addressToLookup) public view {
@@ -131,24 +131,15 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
     // deleted NFTs are kept as entries with value 0 (token ID 0 is used by Zero Monkey)
     function findMonkeyIdsOfAddress(address owner) public view returns (uint256[] memory) {
 
-        uint256 amountOwned = balanceOf(owner);      
+        uint256 amountOwned = balanceOf(owner);             
 
-        // xxxx
-        showAccountForAddress(owner);         
-
-        uint256[] memory ownedTokenIDs = new uint256[](amountOwned);     
-
-        // xxxx
-        //console.log("amountOwned: %s", amountOwned);    
+        uint256[] memory ownedTokenIDs = new uint256[](amountOwned);
 
         for (uint256 indexToCheck = 0; indexToCheck < amountOwned; indexToCheck++ ) {
             
             uint256 foundNFT = tokenOfOwnerByIndex(owner, indexToCheck);
 
-            ownedTokenIDs[indexToCheck] = foundNFT;  
-
-            // xxxx
-            console.log("index: %s, ownedTokenIDs array entry: %s", indexToCheck, ownedTokenIDs[indexToCheck]);                        
+            ownedTokenIDs[indexToCheck] = foundNFT;                                  
         } 
 
         return ownedTokenIDs;        
@@ -177,7 +168,7 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
         return newMonkey;
     }
 
-    // XXXXX re-do, not ERC721Enumerable yet
+    
     // used for creating monkeys (returns tokenId, could be used)
     function _createMonkey(
         uint256 _parent1Id,
@@ -203,10 +194,7 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
         // to address is calling user address, sender is 0 address
         _safeMint(_owner, newMonkeyId);    
 
-        emit MonkeyCreated(_owner, newMonkeyId, _parent1Id, _parent2Id, _genes);
-
-        // xxxx
-        //console.log("Token ID %s has genes: %s", newMonkeyId, _genes);                
+        emit MonkeyCreated(_owner, newMonkeyId, _parent1Id, _parent2Id, _genes);                    
 
         // tokenId is returned
         return newMonkeyId;
@@ -288,9 +276,6 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
         uint8 _random = uint8(_getRandom());
         uint256 countdown = 7;
 
-        //xxxx
-        //console.log("_parent1genes: %s , _parent2genes: %s , _random: %s ", _parent1genes, _parent2genes, _random);
-
         // Bitshift: move to next binary bit
         for (uint256 i = 1; i <= 64; i = i * 2) {
         // Then add 2 last digits from the dna to the new dna
@@ -306,45 +291,26 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
         countdown = countdown.sub(1);
         }
 
-        uint256 pseudoRandomAdv = uint256(keccak256(abi.encodePacked(uint256(_random), totalSupply(), allMonkeysArray[0].genes))); 
+        uint256 pseudoRandomAdv = uint256(keccak256(abi.encodePacked(uint256(_random), totalSupply(), allMonkeysArray[0].genes)));         
         
-        //xxxx
-        //console.log("pseudoRandomAdv: %s ", pseudoRandomAdv);
-         
-
         // makes this number a 2 digit number between 10-98
         pseudoRandomAdv = (pseudoRandomAdv % 89) + 10;
-
-        //xxxx
-        //console.log("pseudoRandomAdv after shortening: %s ", pseudoRandomAdv);
-
+        
         // setting first 2 digits in DNA string to random numbers
         _geneArray[0] = pseudoRandomAdv;
 
-        uint256 newGeneSequence;
-
-        //xxxx
-        //console.log("newGeneSequence at beginning: %s ", newGeneSequence);
+        uint256 newGeneSequence;        
         
         // puts in last positioned array entry (2 digits) as first numbers, then adds 00, then adds again,
         // therefore reversing the backwards information in the array again to correct order 
         for (uint256 j = 0; j < 8; j++) {
             newGeneSequence = newGeneSequence + _geneArray[j];
 
-            //xxxx
-            //console.log("newGeneSequence being modified: %s ", newGeneSequence);
-
             // will stop adding zeros after last repetition
             if (j != 7)  {
                 newGeneSequence = newGeneSequence * 100;
-
-                //xxxx
-                //console.log("newGeneSequence inner loop: %s ", newGeneSequence);
             }                
         }
-
-        //xxxx
-        //console.log("newGeneSequence at end: %s ", newGeneSequence); 
 
         return newGeneSequence;      
     }

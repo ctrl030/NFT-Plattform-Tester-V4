@@ -6,7 +6,9 @@ const { BigNumber } = require("ethers");
 // Main function that is executed during the test
 describe("Monkey Contract, testing", () => {
   // Global variable declarations
-  let _contractInstance, monkeyContract, accounts, assertionCounter;
+  let _contractInstance, monkeyContract, accounts;
+
+  let  assertionCounter = 0;
 
   // this array serves as will receive the generated Hardhat addresses,
   // i.e. accountToAddressArray[0] will hold the address of accounts[0]
@@ -21,7 +23,7 @@ describe("Monkey Contract, testing", () => {
     for(pos = 0; pos < resultArray.length; pos++) {
       normalNumbersResultArr[pos] = bigNumberToNumber(resultArray[pos]);
     } 
-    console.log("NFT Array of", findAccountForAddress(owner), ": ", normalNumbersResultArr);
+    //console.log("NFT Array of", findAccountForAddress(owner), ": ", normalNumbersResultArr);
     return normalNumbersResultArr;
   };
   
@@ -30,6 +32,7 @@ describe("Monkey Contract, testing", () => {
     let resultArray = await getNFTArray(owner);
     for (let count = 0; count < resultArray.length; count ++) {
       expect(bigNumberToNumber(resultArray[count], 0)).to.equal(bigNumberToNumber(expectedArray[count], 0));
+      assertionCounter++;
     };  
   }  
 
@@ -58,13 +61,13 @@ describe("Monkey Contract, testing", () => {
 
   async function createMultiOffersAndVerify(seller, priceInETHArray, tokenIdArray){ 
 
-    console.log('Will now create offers for Token IDs: ', tokenIdArray);
+    //console.log('Will now create offers for Token IDs: ', tokenIdArray);
 
     for (let _index in tokenIdArray) {
       const tokenIdNow = tokenIdArray[_index];
       const priceInWEIForTokenId = web3.utils.toWei(priceInETHArray[_index].toString()) ;
 
-      console.log('_index: ', _index, 'tokenIdNow: ', tokenIdNow, 'price: ', priceInETHArray[_index]);
+      //console.log('_index: ', _index, 'tokenIdNow: ', tokenIdNow, 'price: ', priceInETHArray[_index]);
 
       // setting the offer
       await monkeyMarketContract.connect(seller).setOffer(priceInWEIForTokenId, tokenIdNow); 
@@ -85,6 +88,8 @@ describe("Monkey Contract, testing", () => {
       const offerArrayDirectResult = await monkeyMarketContract.showOfferArrayEntry(offerArrayIndex);
       expect(offerArrayDirectResult.active).to.equal(true);
       expect(offerArrayDirectResult.tokenId).to.equal(tokenIdInOffer);
+
+      assertionCounter = assertionCounter+6;
       
     }    
   }
@@ -92,6 +97,7 @@ describe("Monkey Contract, testing", () => {
   async function verifyAmountOfActiveOffers(expectedAmount) {
     const allActiveOffersArray = await monkeyMarketContract.getAllTokenOnSale();
     expect(allActiveOffersArray.length).to.equal(expectedAmount);
+    assertionCounter++;
   } 
   
   async function checkOfferForTokenID( tokenIdToCheck ){
@@ -128,10 +134,10 @@ describe("Monkey Contract, testing", () => {
 
   async function showTokenIDsOnSale(){ 
 
-    console.log('Tokens IDs now on sale:');
+    //console.log('Tokens IDs now on sale:');
     let allOffersNow = await monkeyMarketContract.getAllTokenOnSale();
     for (_u in allOffersNow) {
-     console.log(bigNumberToNumber(allOffersNow[_u]));
+     //console.log(bigNumberToNumber(allOffersNow[_u]));
     }
   }
 
@@ -208,6 +214,8 @@ describe("Monkey Contract, testing", () => {
     const zeroGenes = bigNumberToNumber(zeroDetails[3]); 
     expect(zeroGenes).to.equal(bigNumberToNumber(1214131177989271));  
 
+    assertionCounter=assertionCounter+8;
+
   });
 
 
@@ -229,7 +237,8 @@ describe("Monkey Contract, testing", () => {
 
     // There should be 12 Gen 0 Monkeys
     const _GEN0Amount = await monkeyContract.gen0amountTotal();
-    expect (_GEN0Amount).to.equal(12); 
+    expect(_GEN0Amount).to.equal(12); 
+    assertionCounter=assertionCounter+3;
 
     // verify monkey genes are the same from our genes0 array 
     // skipping zero monkey created by constructor, starting with Token ID 1
@@ -241,6 +250,7 @@ describe("Monkey Contract, testing", () => {
       // _monkeyMapping[3] shows genes attribute inside the returning CryptoMonkey object
       // comparison has to be i-1 to allow for zero monkey difference         
       expect(_monkeyMapping[3]).to.equal(genes0[i-1]);
+      assertionCounter++;
       }
     } 
 
@@ -248,7 +258,7 @@ describe("Monkey Contract, testing", () => {
     await expect(monkeyContract.createGen0Monkey(genes0[0])).to.be.revertedWith(
       "Maximum amount of gen 0 monkeys reached"
     );    
-
+    assertionCounter++;  
   });
 
   it("Test 3: Breeding CryptoMonkey NFTs", async () => {
@@ -260,9 +270,11 @@ describe("Monkey Contract, testing", () => {
     
     // balanceOf accounts[0] should be 15
     expect(await monkeyContract.balanceOf(accounts[0].address)).to.equal(15);
+    assertionCounter++;
 
     // NFT totalSupply should be 15
     expect(await monkeyContract.totalSupply()).to.equal(15);
+    assertionCounter++;
 
     // checking NFT array of accounts[0]
     const test3Acc0ExpectedArr = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15];
@@ -270,19 +282,21 @@ describe("Monkey Contract, testing", () => {
   });
 
   it("Test 4: Account[0] transfers 2 gen0 monkeys from itself to account[1] ", async () =>{   
-     // transferring NFTs with Token IDs 2 and 3 to accounts[1]
-     await monkeyContract.transfer(accounts[0].address, accounts[1].address, 2);
-     expect(await monkeyContract.balanceOf(accounts[1].address)).to.equal(1);
-     await monkeyContract.transfer(accounts[0].address, accounts[1].address, 3);    
-     expect(await monkeyContract.balanceOf(accounts[1].address)).to.equal(2);
-     let test4Acc1ExpectedArr = [2,3];
-     await expectNFTArray(accounts[1].address, test4Acc1ExpectedArr);
+    
+    // transferring NFTs with Token IDs 2 and 3 to accounts[1]
+    await monkeyContract.transfer(accounts[0].address, accounts[1].address, 2);
+    expect(await monkeyContract.balanceOf(accounts[1].address)).to.equal(1);
+    await monkeyContract.transfer(accounts[0].address, accounts[1].address, 3);    
+    expect(await monkeyContract.balanceOf(accounts[1].address)).to.equal(2);
+    let test4Acc1ExpectedArr = [2,3];
+    await expectNFTArray(accounts[1].address, test4Acc1ExpectedArr);
      
-     // accounts[0] should now own 13 NFTs, IDs 1-15 without 2 and 3, and 15 and 14 swapped and popped to empty places of 2 and 3
-     expect(await monkeyContract.balanceOf(accounts[0].address)).to.equal(13);
-     let test4Acc0ExpectedArr = [1,15,14,4,5,6,7,8,9,10,11,12,13];
-     await expectNFTArray(accounts[0].address, test4Acc0ExpectedArr);     
+    // accounts[0] should now own 13 NFTs, IDs 1-15 without 2 and 3, and 15 and 14 swapped and popped to empty places of 2 and 3
+    expect(await monkeyContract.balanceOf(accounts[0].address)).to.equal(13);
+    let test4Acc0ExpectedArr = [1,15,14,4,5,6,7,8,9,10,11,12,13];
+    await expectNFTArray(accounts[0].address, test4Acc0ExpectedArr);     
    
+    assertionCounter=assertionCounter+3;
   });
 
   it("Test 5: Reverting non-owned monkey", async () => {      
@@ -291,7 +305,7 @@ describe("Monkey Contract, testing", () => {
     await expect(monkeyContract.transfer(accounts[1].address, accounts[2].address, 1)).to.be.revertedWith(
       "ERC721: transfer of token that is not own"
     );    
-    
+    assertionCounter++;
   }); 
   
   it('Test 6: accounts[0] should give accounts[1] operator status and transfer, incl. reverting transfer without operator', async() => {  
@@ -326,11 +340,11 @@ describe("Monkey Contract, testing", () => {
     // checking NFT array of accounts[0]
     expect(await monkeyContract.balanceOf(accounts[2].address)).to.equal(4);
     const test6Acc0ExpectedArr = [1,15,14,4,5,13,12,11,10];    
-    await expectNFTArray(accounts[0].address, test6Acc0ExpectedArr);
-    
+    await expectNFTArray(accounts[0].address, test6Acc0ExpectedArr);  
+    assertionCounter=assertionCounter+6;  
   });
  
-  it('Test 7: accounts[2] should use safeTransferFrom with sending data and without sending data', async() => {  
+  it.skip('Test 7: accounts[2] should use safeTransferFrom with sending data and without sending data', async() => {  
     
     //await monkeyContract.safeTransferFrom(accounts[0].address, accounts[3].address, 10);  
     //await monkeyContract.safeTransferFrom(accounts[0].address, accounts[3].address, 8);
@@ -352,8 +366,7 @@ describe("Monkey Contract, testing", () => {
     // but when given 5 (i.e.  with data plus custom defined account in contract call) throws and says: "Error: Invalid number of parameters for "safeTransferFrom". Got 5 expected 3!"
     // complicating factor maybe: two functions exist under the name "safeTransferFrom", one accepting 4 arguments, the other only 3, setting the fourth to ''
     
-  }); 
-  
+  });   
   
   it('Test 8: as operator, accounts[1] should use transferFrom to take 3 NFTs with Token IDs 13-15 from accounts[0]', async() => {  
     
@@ -365,11 +378,13 @@ describe("Monkey Contract, testing", () => {
     expect(await monkeyContract.balanceOf(accounts[1].address)).to.equal(5);
     const test8Acc1ExpectedArr = [2,3,13,14,15];    
     await expectNFTArray(accounts[1].address, test8Acc1ExpectedArr);
+    assertionCounter++;
 
     // checking NFT array of accounts[0]
     expect(await monkeyContract.balanceOf(accounts[0].address)).to.equal(6);
     const test8Acc0ExpectedArr = [1,12,11,4,5,10];    
     await expectNFTArray(accounts[0].address, test8Acc0ExpectedArr);
+    assertionCounter++;
     
   });
   
@@ -389,7 +404,7 @@ describe("Monkey Contract, testing", () => {
     expect(await monkeyContract.balanceOf(accounts[2].address)).to.equal(5);
     const test9Acc2ExpectedArr = [6,7,8,9,14];    
     await expectNFTArray(accounts[2].address, test9Acc2ExpectedArr);
-    
+    assertionCounter=assertionCounter+3;
   }); 
 
   
@@ -412,6 +427,7 @@ describe("Monkey Contract, testing", () => {
     // checking Token IDs 16 and 17 to be gen2
     expect((await monkeyContract.getMonkeyDetails(16)).generation).to.equal(2);
     expect((await monkeyContract.getMonkeyDetails(17)).generation).to.equal(2);
+    assertionCounter=assertionCounter+5;
     
     // starting with gen2 for breeding NFTs with Token IDs 16 and 17 
     let test22Bgeneration = 3;
@@ -432,33 +448,40 @@ describe("Monkey Contract, testing", () => {
       
       expect( (await monkeyContract.getMonkeyDetails(test22BFirstParentIdCounter)).generation ).to.equal(test22Bgeneration);
       expect( (await monkeyContract.getMonkeyDetails(test22BSecondParentIdCounter)).generation ).to.equal(test22Bgeneration);   
-      test22Bgeneration++;        
+      test22Bgeneration++;
+      assertionCounter++;
+      assertionCounter++;      
       
     }      
 
     // NFT totalSupply should be 27
     expect(await monkeyContract.totalSupply()).to.equal(27);
+    assertionCounter++;
 
     // checking NFT array of accounts[2]
     expect(await monkeyContract.balanceOf(accounts[2].address)).to.equal(17);
     const test10Acc2ExpectedArr = [6,7,8,9,14,16,17,18,19,20,21,22,23,24,25,26,27];    
     await expectNFTArray(accounts[2].address, test10Acc2ExpectedArr);
+    assertionCounter++;
     
   });
 
   it('Test 11: Market should know main contract address', async () => {            
     const mainContractAddressSavedInMarket = await monkeyMarketContract.savedMainContractAddress();     
     expect(mainContractAddressSavedInMarket).to.equal(monkeyContract.address);       
+    assertionCounter++;
   }) 
 
   it('Test 12: accounts[0] should be deployer of main contract', async () => {        
     const monkeyContractOwner = await monkeyContract.owner();      
     expect(monkeyContractOwner).to.equal(accounts[0].address);
+    assertionCounter++;
   }) 
   
   it('Test 13: accounts[0] should be deployer of market contract', async () => {        
     const marketContractOwner = await monkeyMarketContract.owner(); 
     expect(marketContractOwner).to.equal(accounts[0].address);  
+    assertionCounter++;
   }) 
 
   it('Test 14: Creating and deleting offers', async () => { 
@@ -469,7 +492,7 @@ describe("Monkey Contract, testing", () => {
     // REVERT: without market having operator status, accounts[2] tries to create 4 offers
     await expect(createMultiOffersAndVerify(accounts[2], pricesInETHTest14Acc2, tokenIDsToSellT14Acc2)).to.be.revertedWith(
       "Marketplace address needs operator status from monkey owner."
-    );    
+    );        
 
     // giving operator status and verifying
     await monkeyContract.connect(accounts[1]).setApprovalForAll(monkeyMarketContract.address, true);
@@ -503,10 +526,11 @@ describe("Monkey Contract, testing", () => {
     );
 
     await verifyAmountOfActiveOffers(7);  
-    
+    assertionCounter=assertionCounter+5;
+
   });
 
-  it('Test 15: "Real world usage" - Buying / selling, interwoven with breeding, creating and deleting offers', async () => {
+  it('Test 15: "Real world use" - Buying / selling, interwoven with breeding, creating and deleting offers', async () => {
 
     // accounts[1] owns these NFTs at this point (all 4 are up for sale)
     const tokensOwnedByAcc1 = [2, 3, 13, 15];
@@ -515,6 +539,7 @@ describe("Monkey Contract, testing", () => {
     // accounts[1] should have 10000 ETH (Hardhat environment starting balance) at this point
     const balanceBeforeT15Acc1 = await getETHbalance(accounts[1].address); 
     expect(balanceBeforeT15Acc1).to.equal(10000);
+    assertionCounter++;
 
     // accounts[3] owns no NFTs at this point
     const tokensOwnedByAcc3 = [];
@@ -523,6 +548,7 @@ describe("Monkey Contract, testing", () => {
     // accounts[3] should have 10000 ETH (Hardhat environment starting balance) at this point
     const balanceBeforeT15Acc3 = await getETHbalance(accounts[3].address); 
     expect(balanceBeforeT15Acc3).to.equal(10000);
+    assertionCounter++;
     
     // accounts[3] buys 3 NFTs from acc1
     await monkeyMarketContract.connect( accounts[3] ).buyMonkey( 2, {value: ethers.utils.parseEther("2")} );
@@ -532,7 +558,7 @@ describe("Monkey Contract, testing", () => {
     // accounts[3] should now have 9847.87 ETH
     const balanceAfterT15Acc3 = await getETHbalance(accounts[3].address);
     expect(balanceAfterT15Acc3).to.equal((10000-2-0.13-150));
-    console.log('balanceAfterT15Acc3: ', balanceAfterT15Acc3);
+    assertionCounter++;
 
     // accounts[3] should now own these three NFTs and in this order in their _ownedTokens mapping 
     const tokensOwnedAfterByAcc3 = [2,13,15];
@@ -541,7 +567,7 @@ describe("Monkey Contract, testing", () => {
     // accounts[1] should now have 10152.13 ETH
     const balanceAfterT15Acc1 = await getETHbalance(accounts[1].address); 
     expect(balanceAfterT15Acc1).to.equal(10000+2+0.13+150);
-    console.log('balanceAfterT15Acc1: ', balanceAfterT15Acc1);
+    assertionCounter++;
 
     // accounts[1] should now own this NFT in their _ownedTokens mapping 
     const tokensOwnedAfterByAcc1 = [3];
@@ -555,12 +581,12 @@ describe("Monkey Contract, testing", () => {
     // accounts[4] should now have 9733.499981 ETH
     const balanceAfterT15Acc4 = await getETHbalance(accounts[4].address);
     expect(balanceAfterT15Acc4).to.equal((10000-6.5-0.000019-260));
-    console.log('balanceAfterT15Acc4: ', balanceAfterT15Acc4);
+    assertionCounter++;
 
     // accounts[2] should now have 10266.500019 ETH
     const balanceAfterT15Acc2 = await getETHbalance(accounts[2].address);
     expect(balanceAfterT15Acc2).to.equal((10000+6.5+0.000019+260));
-    console.log('balanceAfterT15Acc2: ', balanceAfterT15Acc2);    
+    assertionCounter++;
 
     // accounts[3] should breed 4 NFTs
     await monkeyContract.connect(accounts[3]).breed(2, 15);
@@ -577,53 +603,41 @@ describe("Monkey Contract, testing", () => {
     await createMultiOffersAndVerify(accounts[3], pricesInETHT15Acc3, tokenIDsToSellT15Acc3);      
 
     // accounts[5] should buy 2 NFTs from acc3 (1 orig from acc1 and 1 bred)
-    await monkeyMarketContract.connect( accounts[5] ).buyMonkey( 2, {value: ethers.utils.parseEther("2")} );   
     await monkeyMarketContract.connect( accounts[5] ).buyMonkey( 29, {value: ethers.utils.parseEther("29")} );
+    await monkeyMarketContract.connect( accounts[5] ).buyMonkey( 2, {value: ethers.utils.parseEther("2")} );       
 
     const balanceAfterT15Acc5 = await getETHbalance(accounts[5].address);
     expect(balanceAfterT15Acc5).to.equal((10000-2-29));
-
+    assertionCounter++;
+    
     const balanceAfterT15Acc3Again = await getETHbalance(accounts[3].address);
     expect(balanceAfterT15Acc3Again).to.equal((balanceAfterT15Acc3+2+29));   
+    assertionCounter++;
 
-    // acc2 should buy back 2 NFTS from acc4
-
-
-
-    /*
+    //accounts[4] creates 2 offers (Token IDs: 26,6), offers are then verified 
+    await monkeyContract.connect(accounts[4]).setApprovalForAll(monkeyMarketContract.address, true);
+    expect(await monkeyContract.isApprovedForAll(accounts[4].address, monkeyMarketContract.address)).to.equal(true);
+    assertionCounter++;
+    let pricesInETHTest14Acc1 = [0.26, 6];
+    let tokenIDsToSellT14Acc1 = [26, 6]; 
+    await createMultiOffersAndVerify(accounts[4], pricesInETHTest14Acc1, tokenIDsToSellT14Acc1); 
+    
+    // acc2 buys back 2 NFTS from acc4
+    await monkeyMarketContract.connect( accounts[2] ).buyMonkey( 26, {value: ethers.utils.parseEther("0.26")} ); 
+    await monkeyMarketContract.connect( accounts[2] ).buyMonkey( 6, {value: ethers.utils.parseEther("6")} );     
+   
     await getNFTArray(accounts[0].address);
     await getNFTArray(accounts[1].address);
     await getNFTArray(accounts[2].address);
     await getNFTArray(accounts[3].address);
-    await getNFTArray(accounts[4].address)
-    await getNFTArray(accounts[5].address)
-    ;*/
-
+    await getNFTArray(accounts[4].address);
+    await getNFTArray(accounts[5].address);
   })
+
+  it('Test 16: should show estimate of amount of assertions in testing', async () => {  
+    console.log('During these Hardhat tests more than', assertionCounter , 'assertions were succesfully proven correct.')  
+  });
 
 });
 
-
-
-
-
-
-
-/*
-
-
-it('Test 39makeLast: should verify the intergrity between trackers _monkeyIdsAndTheirOwnersMapping and MonkeyIdPositionsMapping for all NFTs', async () => {  
-  
-  await assertPosIntegrAllNFTs();
-}); 
-
-
-it('Test 40: should show how many assertions in testing were done', async () => {  
-
-  console.log('During these Hardhat tests, at least', assertionCounter , 'assertions were succesfully proven correct.')
-
-
-}); */
-    
-    
  
