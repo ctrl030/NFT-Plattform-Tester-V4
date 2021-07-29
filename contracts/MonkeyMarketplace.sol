@@ -14,7 +14,7 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 contract MonkeyMarketplace is Ownable, ReentrancyGuard, Pausable {
   using SafeMath for uint256;
   
-  IMonkeyContract private _ERC721;
+  IMonkeyContract private _monkeyContractInterface;
 
   address public savedMainContractAddress;
 
@@ -38,11 +38,19 @@ contract MonkeyMarketplace is Ownable, ReentrancyGuard, Pausable {
   mapping (uint256 => Offer) tokenIdToOfferMapping;    
 
   constructor (address _constructorMonkeyContractAddress) {
-    _ERC721 = IMonkeyContract(_constructorMonkeyContractAddress);
-    require(_ERC721.getMonkeyContractAddress() == _constructorMonkeyContractAddress, "CONSTRUCTOR: Monkey contract address must be the same.");
+    _monkeyContractInterface = IMonkeyContract(_constructorMonkeyContractAddress);
+    require(_monkeyContractInterface.getMonkeyContractAddress() == _constructorMonkeyContractAddress, "CONSTRUCTOR: Monkey contract address must be the same.");
     savedMainContractAddress = _constructorMonkeyContractAddress;
   } 
  
+ function pause() public onlyOwner {
+    _pause();
+  }
+
+  function unpause() public onlyOwner {
+    _unpause();
+  }
+
   /**
   * Get the details about a offer for _tokenId. Throws an error if there is no active offer for _tokenId.
   */
@@ -122,9 +130,9 @@ contract MonkeyMarketplace is Ownable, ReentrancyGuard, Pausable {
   function setOffer(uint256 _price, uint256 _tokenId) public whenNotPaused {    
 
     //  Only the owner of _tokenId can create an offer.
-    require( _ERC721.ownerOf(_tokenId) == msg.sender, "Only monkey owner can set offer for this tokenId" );
+    require( _monkeyContractInterface.ownerOf(_tokenId) == msg.sender, "Only monkey owner can set offer for this tokenId" );
     //Marketplace contract (this) needs to be an approved operator when the offer is created.
-    require( _ERC721.isApprovedForAll(msg.sender, address(this)), "Marketplace address needs operator status from monkey owner." );
+    require( _monkeyContractInterface.isApprovedForAll(msg.sender, address(this)), "Marketplace address needs operator status from monkey owner." );
     //Offer price must be greater than 0
     require(_price >= 1000000000000, "offer price must be at least 1000000000000 WEI, i.e. 0.000001 ETH ");
     
@@ -204,7 +212,7 @@ contract MonkeyMarketplace is Ownable, ReentrancyGuard, Pausable {
     delete tokenOffer;    
 
     // transferring the NFT
-    _ERC721.transferFrom(_oldOwner, msg.sender, _tokenId);  
+    _monkeyContractInterface.transferFrom(_oldOwner, msg.sender, _tokenId);  
 
     // transferring sent funds to _oldOwner
     _oldOwner.transfer(msg.value);

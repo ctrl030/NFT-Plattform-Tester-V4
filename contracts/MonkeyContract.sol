@@ -95,6 +95,14 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
     }
 
     // Functions 
+
+    function pause() public onlyOwner {
+        _pause();
+    }
+
+    function unpause() public onlyOwner {
+        _unpause();
+    }
     
     function getMonkeyContractAddress() public view returns (address) {  
         return _monkeyContractAddress;
