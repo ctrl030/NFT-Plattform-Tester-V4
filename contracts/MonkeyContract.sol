@@ -216,7 +216,7 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
     /// * @param _to The address to who to transfer to, cannot be 0 address
     /// * @param _tokenId The id of the transfering monkey
      
-    function transfer(
+    function transferNFT(
         address _from,
         address _to,
         uint256 _tokenId

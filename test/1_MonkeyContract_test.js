@@ -301,7 +301,7 @@ describe("Monkey Contract, testing", () => {
   it("Test 5: Reverting non-owned monkey", async () => {      
 
     // REVERT: transfering a non-owned monkey
-    await expect(monkeyContract.transfer(accounts[1].address, accounts[2].address, 1)).to.be.revertedWith(
+    await expect(monkeyContract.transferNFT(accounts[1].address, accounts[2].address, 1)).to.be.revertedWith(
       "ERC721: transfer of token that is not own"
     );    
     assertionCounter++;
@@ -318,7 +318,7 @@ describe("Monkey Contract, testing", () => {
     expect(await monkeyContract.isApprovedForAll(accounts[0].address, accounts[1].address)).to.equal(false);
 
     // REVERT: without operator status, accounts[1] tries to send NFT with Token ID 4 from accounts[0] to accounts[2]     
-    await expect(monkeyContract.connect(accounts[1]).transfer(accounts[0].address, accounts[2].address, 4)).to.be.revertedWith(
+    await expect(monkeyContract.connect(accounts[1]).transferNFT(accounts[0].address, accounts[2].address, 4)).to.be.revertedWith(
       "MonkeyContract: Can't transfer this NFT without being owner, approved or operator"
     );
     
@@ -328,7 +328,7 @@ describe("Monkey Contract, testing", () => {
     
     // As operator, accounts[1] sends NFT with Token IDs 6-9 from accounts[0] to accounts[2]
     for (let index = 6; index <= 9; index++) {
-      await monkeyContract.connect(accounts[1]).transfer(accounts[0].address, accounts[2].address,`${index}`);   
+      await monkeyContract.connect(accounts[1]).transferNFT(accounts[0].address, accounts[2].address,`${index}`);   
     }  
 
     // checking NFT array of accounts[2]
@@ -346,7 +346,7 @@ describe("Monkey Contract, testing", () => {
   it('Test 7: as operator, accounts[1] should use transfer to take 3 NFTs with Token IDs 13-15 from accounts[0]', async() => {  
     
     for (let index = 13; index <= 15; index++) {
-      await monkeyContract.connect(accounts[1]).transfer(accounts[0].address, accounts[1].address,`${index}`);
+      await monkeyContract.connect(accounts[1]).transferNFT(accounts[0].address, accounts[1].address,`${index}`);
     }
 
     // checking NFT array of accounts[1]
@@ -602,6 +602,10 @@ describe("Monkey Contract, testing", () => {
   })
 
   it('Test 13: should test pausable functionality in both contracts', async () => {  
+
+    // giving market operator status to test selling with these accounts while paused
+    await monkeyContract.connect(accounts[5]).setApprovalForAll(monkeyMarketContract.address, true);
+    await monkeyContract.connect(accounts[3]).setApprovalForAll(monkeyMarketContract.address, true);
     
     // REVERT: try to pause main contract while not being the owner
     await expect(monkeyContract.connect(accounts[1]).pause()).to.be.revertedWith(
@@ -633,19 +637,21 @@ describe("Monkey Contract, testing", () => {
     await expect( monkeyMarketContract.connect(accounts[2]).buyMonkey(28, {value: ethers.utils.parseEther("28")} )).to.be.revertedWith(
       "Pausable: paused"
     );
+
+   
      
     // REVERT: creating sell offer is reverted in market contract while it is paused   
-    await expect( monkeyMarketContract.connect(accounts[5]).setOffer("20000000000", 2) ).to.be.revertedWith(
-      "Pausable: paused"
+    await expect( monkeyMarketContract.connect(accounts[5]).setOffer("200000000000000", 2) ).to.be.revertedWith(
+      "Pausable: paused"                                              
     );
-
+      
     // REVERT: deleting sell offer is reverted in market contract while it is paused
     await expect( monkeyMarketContract.connect(accounts[3]).removeOffer(28) ).to.be.revertedWith(
       "Pausable: paused"
     );
 
     // transfering via main contract still works, as it is not paused
-    await monkeyContract.connect(accounts[3]).transfer(accounts[3].address, accounts[4].address, 30);   
+    await monkeyContract.connect(accounts[3]).transferNFT(accounts[3].address, accounts[4].address, 30);   
 
     // pausing main contract as owner
     await monkeyContract.pause();
@@ -655,7 +661,7 @@ describe("Monkey Contract, testing", () => {
     expect(await monkeyMarketContract.paused()).to.equal(true);    
       
     // REVERT: transfering NFT is reverted in main contract while it is paused    
-    await expect( monkeyContract.connect(accounts[3]).transfer(accounts[3].address, accounts[4].address, 31) ).to.be.revertedWith(
+    await expect( monkeyContract.connect(accounts[3]).transferNFT(accounts[3].address, accounts[4].address, 31) ).to.be.revertedWith(
       "Pausable: paused"
     );
 
@@ -667,50 +673,46 @@ describe("Monkey Contract, testing", () => {
     // REVERT: creating demo NFT is reverted in main contract while it is paused    
     await expect( monkeyContract.connect(accounts[3]).createDemoMonkey(1111222233334444, accounts[3].address) ).to.be.revertedWith(
       "Pausable: paused"
-    );
-
-    
-
-    // 2-3 functions reverted as paused    
-    // createDemoMonkey
-    
-    
-
-
-    await getNFTArray (accounts[0].address);
-    await showTokenIDsOnSale();
-
-    //console.log( await checkOfferForTokenID(3) );
-
-    //console.log( findAccountForAddress(0x70997970C51812dc3A010C7d01b50e0d17dc79C8) ) ; 
-
-
-
-
-
+    );       
 
     // unpause market, but not main
     await monkeyMarketContract.unpause();    
 
     // paused() should be false for monkeyMarketContract, true for monkeyContract 
     expect(await monkeyMarketContract.paused()).to.equal(false);  
-    expect(await monkeyContract.paused()).to.equal(true);
+    expect(await monkeyContract.paused()).to.equal(true);    
+
+    // transfering and buying are reverted when main contract is paused, but creating and deleting offers is allowed, since market is unpaused
+
+    // REVERT: transfering NFT is reverted in main contract while it is still paused    
+    await expect( monkeyContract.connect(accounts[3]).transferNFT(accounts[3].address, accounts[4].address, 31) ).to.be.revertedWith(
+      "Pausable: paused"
+    );
+
+    // REVERT: buying NFT is reverted even though market is unpaused but main contract is still paused    
+    await expect( monkeyMarketContract.connect(accounts[2]).buyMonkey(28, {value: ethers.utils.parseEther("28")} )).to.be.revertedWith(
+      "Pausable: paused"
+    );
     
-
-    // both should not really work, since main is needed for pretty much everything, check what works, maybe creating and deleting offers?
-
-    // revert market call
+    // creating sell offer is allowed in market contract as it is unpaused      
+    await monkeyMarketContract.connect(accounts[5]).setOffer("200000000000000", 2); 
+    
+    // deleting sell offer is allowed in market contract as it is unpaused     
+    await monkeyMarketContract.connect(accounts[5]).removeOffer(2);    
 
     // unpause main as well, now both should work normal
     await monkeyContract.unpause();
 
     // paused() should be false for both
     expect(await monkeyContract.paused()).to.equal(false);
-    expect(await monkeyMarketContract.paused()).to.equal(false);
+    expect(await monkeyMarketContract.paused()).to.equal(false);    
 
-    // do the function calls that before were reverted because of paused, should now all go through
+    // transfering now works again, as both contracts are unpaused
+    await monkeyContract.connect(accounts[3]).transferNFT(accounts[3].address, accounts[4].address, 31);
 
-     
+    // buying now works again, as both contracts are unpaused   
+    await monkeyMarketContract.connect(accounts[2]).buyMonkey(28, {value: ethers.utils.parseEther("28")} );    
+
   });
 
   it('Test LAST: should show estimate of amount of assertions in testing', async () => {  

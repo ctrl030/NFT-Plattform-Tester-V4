@@ -21,15 +21,13 @@ interface IMonkeyContract is IERC721{
     uint256 parent2Id, 
     uint256 generation, 
     address owner
-  );
+  );  
 
   function getMonkeyContractAddress() external view returns (address);
   
   function breed(uint256 _parent1Id, uint256 _parent2Id) external returns (uint256);
   
   function findMonkeyIdsOfAddress(address sender) external view returns (uint256[] memory);
-  
-  function findNFTposition(address owner, uint256 tokenId ) external view returns (uint256);
   
   function createMonkey(
     uint256 _parent1Id,
@@ -56,5 +54,5 @@ interface IMonkeyContract is IERC721{
   /// * @param _from The address from who to transfer from, can be 0 for creation of a monkey
   /// * @param _to The address to who to transfer to, cannot be 0 address
   /// * @param _tokenId The id of the transfering monkey  
-  function transfer(address _from, address _to, uint256 _tokenId) external;
+  function transferNFT(address _from, address _to, uint256 _tokenId) external;
 }

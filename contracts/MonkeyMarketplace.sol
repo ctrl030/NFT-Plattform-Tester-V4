@@ -186,7 +186,7 @@ contract MonkeyMarketplace is Ownable, ReentrancyGuard, Pausable {
 
   /**
   * Executes the purchase of _tokenId.
-  * Sends the funds to the seller and transfers the token using transferFrom in Monkeycontract.   
+  * Sends the funds to the seller and transfers the token using transfer in Monkeycontract.   
   * Emits the MarketTransaction event with txType "Buy".
   * Requirement: The msg.value needs to equal the price of _tokenId
   * Requirement: There must be an active offer for _tokenId
@@ -212,7 +212,7 @@ contract MonkeyMarketplace is Ownable, ReentrancyGuard, Pausable {
     delete tokenOffer;    
 
     // transferring the NFT
-    _monkeyContractInterface.transferFrom(_oldOwner, msg.sender, _tokenId);  
+    _monkeyContractInterface.transferNFT(_oldOwner, msg.sender, _tokenId);  
 
     // transferring sent funds to _oldOwner
     _oldOwner.transfer(msg.value);
