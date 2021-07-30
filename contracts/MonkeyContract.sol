@@ -221,7 +221,7 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
         address _to,
         uint256 _tokenId
     ) public nonReentrant whenNotPaused{
-        require(_to != address(0), "MonkeyContract: transfer to the zero address not allowed, burn NFT instead");
+        require(_to != address(0), "MonkeyContract: Transfer to the zero address not allowed, burn NFT instead");
         require(_to != address(this), "MonkeyContract: Can't transfer NFTs to this contract");
         require (_isApprovedOrOwner(_msgSender(), _tokenId) == true, "MonkeyContract: Can't transfer this NFT without being owner, approved or operator");   
 
@@ -232,7 +232,7 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
         uint256 _tokenId
     ) private nonReentrant whenNotPaused{       
         
-        require (_isApprovedOrOwner(_msgSender(), _tokenId) == true);         
+        require (_isApprovedOrOwner(_msgSender(), _tokenId) == true, "MonkeyContract: Can't burn this NFT without being owner, approved or operator");         
 
         // burning via openzeppelin
         _burn(_tokenId);       
@@ -241,7 +241,7 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
     function breed(uint256 _parent1Id, uint256 _parent2Id) public whenNotPaused returns (uint256)  {
 
         // _msgSender() needs to be owner of both crypto monkeys
-        require(ownerOf(_parent1Id) == _msgSender() && ownerOf(_parent2Id) == _msgSender(), "must be owner of both parent tokens");
+        require(ownerOf(_parent1Id) == _msgSender() && ownerOf(_parent2Id) == _msgSender(), "MonkeyContract: Must be owner of both parent tokens");
 
         // first 8 digits in DNA will be selected by dividing, solidity will round down everything to full integers
         uint256 _parent1genes = allMonkeysArray[_parent1Id].genes; 

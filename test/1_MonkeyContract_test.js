@@ -1,7 +1,6 @@
+
 const { expect } = require('chai');
 const { BigNumber } = require("ethers");
-
-
 
 // Main function that is executed during the test
 describe("Monkey Contract, testing", () => {
@@ -23,7 +22,7 @@ describe("Monkey Contract, testing", () => {
     for(pos = 0; pos < resultArray.length; pos++) {
       normalNumbersResultArr[pos] = bigNumberToNumber(resultArray[pos]);
     } 
-    console.log("NFT Array of", findAccountForAddress(owner), ": ", normalNumbersResultArr);
+    //console.log("NFT Array of", findAccountForAddress(owner), ": ", normalNumbersResultArr);
     return normalNumbersResultArr;
   };
   
@@ -255,6 +254,7 @@ describe("Monkey Contract, testing", () => {
       "Maximum amount of gen 0 monkeys reached"
     );    
     assertionCounter++;  
+
   });
 
   it("Test 3: Breeding CryptoMonkey NFTs", async () => {
@@ -591,13 +591,20 @@ describe("Monkey Contract, testing", () => {
     await monkeyContract.connect(accounts[4]).setApprovalForAll(monkeyMarketContract.address, true);
     expect(await monkeyContract.isApprovedForAll(accounts[4].address, monkeyMarketContract.address)).to.equal(true);
     assertionCounter++;
-    let pricesInETHTest12Acc1 = [0.26, 6];
-    let tokenIDsToSellT12Acc1 = [26, 6]; 
+    const pricesInETHTest12Acc1 = [0.26, 6];
+    const tokenIDsToSellT12Acc1 = [26, 6]; 
     await createMultiOffersAndVerify(accounts[4], pricesInETHTest12Acc1, tokenIDsToSellT12Acc1); 
     
     // acc2 buys back 2 NFTS from acc4
     await monkeyMarketContract.connect( accounts[2] ).buyMonkey( 26, {value: ethers.utils.parseEther("0.26")} ); 
     await monkeyMarketContract.connect( accounts[2] ).buyMonkey( 6, {value: ethers.utils.parseEther("6")} );  
+
+    // creating demo NFT    
+    await monkeyContract.connect(accounts[6]).createDemoMonkey(1111222233334444, accounts[6].address);    
+    const test12Acc6ExpectedArr = [32];
+    await expectNFTArray(accounts[6].address, test12Acc6ExpectedArr);
+    const monkey32 = await monkeyContract.allMonkeysArray(32);    
+    expect(monkey32[3]).to.equal(1111222233334444);   
     
   })
 
@@ -636,9 +643,7 @@ describe("Monkey Contract, testing", () => {
     // REVERT: buying NFT is reverted in market contract while it is paused    
     await expect( monkeyMarketContract.connect(accounts[2]).buyMonkey(28, {value: ethers.utils.parseEther("28")} )).to.be.revertedWith(
       "Pausable: paused"
-    );
-
-   
+    );   
      
     // REVERT: creating sell offer is reverted in market contract while it is paused   
     await expect( monkeyMarketContract.connect(accounts[5]).setOffer("200000000000000", 2) ).to.be.revertedWith(
@@ -712,6 +717,8 @@ describe("Monkey Contract, testing", () => {
 
     // buying now works again, as both contracts are unpaused   
     await monkeyMarketContract.connect(accounts[2]).buyMonkey(28, {value: ethers.utils.parseEther("28")} );    
+
+    assertionCounter=assertionCounter+22;
 
   });
 
