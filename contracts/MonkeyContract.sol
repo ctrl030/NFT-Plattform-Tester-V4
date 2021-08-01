@@ -49,7 +49,7 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
     // Boolean to control whether transfers have to check for open offers
     bool private _marketConnected = false;    
     
-    // xxxxx
+    // xxxx
     function connectMarket(address _receivedMarketContractAddress, bool setConnectMarket) external {
         _monkeyMarketInterface = IMonkeyMarketplace(_receivedMarketContractAddress);
         _marketConnected = setConnectMarket;
@@ -244,7 +244,11 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
         address _from,
         address _to,
         uint256 _tokenId
-    ) public nonReentrant whenNotPaused{
+    ) public nonReentrant whenNotPaused{  
+        bool tokenOnSale = ( _monkeyMarketInterface.getOffer(_tokenId).active ); // tokenIdToOfferMapping[_tokenId].active      
+        if ( _marketConnected == true ) {
+            require( tokenOnSale != true, "MonkeyContract: NFT is still on sale. Remove offer first." );
+        }
         require(_to != address(0), "MonkeyContract: Transfer to the zero address not allowed, burn NFT instead");
         require(_to != address(this), "MonkeyContract: Can't transfer NFTs to this contract");
         require (_isApprovedOrOwner(_msgSender(), _tokenId) == true, "MonkeyContract: Can't transfer this NFT without being owner, approved or operator");   

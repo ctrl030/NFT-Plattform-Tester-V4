@@ -68,16 +68,26 @@ contract MonkeyMarketplace is Ownable, ReentrancyGuard, Pausable {
     bool active
     )
   {
-    require (tokenIdToOfferMapping[_tokenId].active, "No active offer for this tokenId.");
+    if(tokenIdToOfferMapping[_tokenId].active != true) {
+      return (
+        address(0),
+        1000 ether,
+        0,
+       _tokenId,
+       tokenIdToOfferMapping[_tokenId].active
+      );
+    } else {
+      Offer memory offer = tokenIdToOfferMapping[_tokenId]; 
+      return (
+      offer.seller,
+      offer.price,
+      offer.index, 
+      offer.tokenId,
+      offer.active       
+      );
+    }
 
-    Offer memory offer = tokenIdToOfferMapping[_tokenId]; 
-    return (
-    offer.seller,
-    offer.price,
-    offer.index, 
-    offer.tokenId,
-    offer.active       
-    );
+    
   }
 
   /**
