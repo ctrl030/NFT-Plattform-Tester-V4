@@ -16,6 +16,8 @@ interface IMonkeyMarketplace {
      */
     function getOffer(uint256 _tokenId) external view returns ( address seller, uint256 price, uint256 index, uint256 tokenId, bool active);
 
+    function isTokenOnSale(uint256 _tokenId) external view returns (bool tokenIsOnSale);
+
     /**
     * Get all tokenId's that are currently for sale. Returns an empty array if none exist.
      */

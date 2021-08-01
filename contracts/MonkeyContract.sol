@@ -244,8 +244,8 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
         address _from,
         address _to,
         uint256 _tokenId
-    ) public nonReentrant whenNotPaused{  
-        bool tokenOnSale = ( _monkeyMarketInterface.getOffer(_tokenId).active ); // tokenIdToOfferMapping[_tokenId].active      
+    ) public nonReentrant whenNotPaused{   
+        bool tokenOnSale = _monkeyMarketInterface.isTokenOnSale(_tokenId);    
         if ( _marketConnected == true ) {
             require( tokenOnSale != true, "MonkeyContract: NFT is still on sale. Remove offer first." );
         }

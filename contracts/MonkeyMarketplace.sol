@@ -57,6 +57,14 @@ contract MonkeyMarketplace is Ownable, ReentrancyGuard, Pausable {
     _unpause();
   }
 
+
+  function isTokenOnSale(uint256 _tokenId) public view returns (bool tokenIsOnSale) {
+    return (
+      tokenIdToOfferMapping[_tokenId].active
+    );
+  }
+
+  
   /**
   * Get the details about a offer for _tokenId. Throws an error if there is no active offer for _tokenId.
   */
@@ -68,26 +76,16 @@ contract MonkeyMarketplace is Ownable, ReentrancyGuard, Pausable {
     bool active
     )
   {
-    if(tokenIdToOfferMapping[_tokenId].active != true) {
-      return (
-        address(0),
-        1000 ether,
-        0,
-       _tokenId,
-       tokenIdToOfferMapping[_tokenId].active
-      );
-    } else {
-      Offer memory offer = tokenIdToOfferMapping[_tokenId]; 
-      return (
-      offer.seller,
-      offer.price,
-      offer.index, 
-      offer.tokenId,
-      offer.active       
-      );
-    }
+    require (tokenIdToOfferMapping[_tokenId].active, "No active offer for this tokenId.");
 
-    
+    Offer memory offer = tokenIdToOfferMapping[_tokenId]; 
+    return (
+    offer.seller,
+    offer.price,
+    offer.index, 
+    offer.tokenId,
+    offer.active       
+    );
   }
 
   /**

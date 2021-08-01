@@ -692,7 +692,7 @@ describe("Monkey Contract, testing", () => {
     // REVERT: using transferNFT to transfer an NFT is reverted in main contract while it is still paused    
     await expect( monkeyContract.connect(accounts[3]).transferNFT(accounts[3].address, accounts[4].address, 31) ).to.be.revertedWith(
       "Pausable: paused"
-    );
+    );   
 
     // REVERT: using transferFrom to transfer an NFT is reverted in main contract while it is still paused    
     await expect( monkeyContract.connect(accounts[3]).transferFrom(accounts[3].address, accounts[4].address, 31) ).to.be.revertedWith(
@@ -729,9 +729,14 @@ describe("Monkey Contract, testing", () => {
 
     // transfering now works again, as both contracts are unpaused
     await monkeyContract.connect(accounts[3]).transferNFT(accounts[3].address, accounts[4].address, 31);
+      
+    // REVERT: using transferNFT to transfer an NFT is reverted in main contract while it is still paused    
+    await expect( monkeyContract.connect(accounts[3]).transferNFT(accounts[3].address, accounts[4].address, 28) ).to.be.revertedWith(
+      "MonkeyContract: NFT is still on sale. Remove offer first."
+    );
 
     // buying now works again, as both contracts are unpaused   
-    await monkeyMarketContract.connect(accounts[2]).buyMonkey(28, {value: ethers.utils.parseEther("28")} );    
+    await monkeyMarketContract.connect(accounts[2]).buyMonkey(28, {value: ethers.utils.parseEther("28")} );        
 
     assertionCounter=assertionCounter+25;
 
@@ -741,8 +746,7 @@ describe("Monkey Contract, testing", () => {
     console.log('During these Hardhat tests more than', assertionCounter , 'assertions were succesfully proven correct.')  
 
     // xxxx connecting market must become safer
-    console.log(await monkeyContract.checkMarketConnected()); 
-
+    console.log(await monkeyContract.checkMarketConnected());
     console.log(monkeyMarketContract.address);
 
 
