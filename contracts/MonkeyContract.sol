@@ -357,6 +357,25 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
 
         return newGeneration;
     }
+
+    // overriding ERC721's function, including whenNotPaused for added security
+    function transferFrom(address from, address to, uint256 tokenId) public override whenNotPaused {
+        //solhint-disable-next-line max-line-length
+        require(_isApprovedOrOwner(_msgSender(), tokenId), "ERC721: transfer caller is not owner nor approved");
+
+        _transfer(from, to, tokenId);
+    }
+
+    // overriding ERC721's function, including whenNotPaused for added security
+    function safeTransferFrom(address from, address to, uint256 tokenId) public override whenNotPaused {
+        safeTransferFrom(from, to, tokenId, "");
+    }
+
+    // overriding ERC721's function, including whenNotPaused for added security
+    function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory _data) public override whenNotPaused {
+        require(_isApprovedOrOwner(_msgSender(), tokenId), "ERC721: transfer caller is not owner nor approved");
+        _safeTransfer(from, to, tokenId, _data);
+    }
     
 }
 

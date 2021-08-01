@@ -689,8 +689,23 @@ describe("Monkey Contract, testing", () => {
 
     // transfering and buying are reverted when main contract is paused, but creating and deleting offers is allowed, since market is unpaused
 
-    // REVERT: transfering NFT is reverted in main contract while it is still paused    
+    // REVERT: using transferNFT to transfer an NFT is reverted in main contract while it is still paused    
     await expect( monkeyContract.connect(accounts[3]).transferNFT(accounts[3].address, accounts[4].address, 31) ).to.be.revertedWith(
+      "Pausable: paused"
+    );
+
+    // REVERT: using transferFrom to transfer an NFT is reverted in main contract while it is still paused    
+    await expect( monkeyContract.connect(accounts[3]).transferFrom(accounts[3].address, accounts[4].address, 31) ).to.be.revertedWith(
+      "Pausable: paused"
+    );  
+      
+    // REVERT: using safeTransferFrom (w. 4 arguments) to transfer an NFT is reverted in main contract while it is still paused   
+    await expect(  monkeyContract["safeTransferFrom(address,address,uint256,bytes)"](accounts[3].address, accounts[4].address, 31, 013456) ).to.be.revertedWith(
+      "Pausable: paused"
+    );
+
+    // REVERT: using safeTransferFrom (w. 3 arguments) to transfer an NFT is reverted in main contract while it is still paused  
+    await expect( monkeyContract["safeTransferFrom(address,address,uint256)"](accounts[3].address, accounts[4].address, 31) ).to.be.revertedWith(
       "Pausable: paused"
     );
 
@@ -718,7 +733,7 @@ describe("Monkey Contract, testing", () => {
     // buying now works again, as both contracts are unpaused   
     await monkeyMarketContract.connect(accounts[2]).buyMonkey(28, {value: ethers.utils.parseEther("28")} );    
 
-    assertionCounter=assertionCounter+22;
+    assertionCounter=assertionCounter+25;
 
   });
 
