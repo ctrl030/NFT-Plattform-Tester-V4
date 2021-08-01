@@ -17,7 +17,7 @@ interface IMonkeyMarketplace {
     function getOffer(uint256 _tokenId) external view returns ( address seller, uint256 price, uint256 index, uint256 tokenId, bool active);
 
     /**
-    * Get all tokenId's that are currently for sale. Returns an empty arror if none exist.
+    * Get all tokenId's that are currently for sale. Returns an empty array if none exist.
      */
     function getAllTokenOnSale() external view  returns(uint256[] memory listOfOffers);
 
@@ -45,4 +45,5 @@ interface IMonkeyMarketplace {
     * Requirement: There must be an active offer for _tokenId
      */
     function buyMonkey(uint256 _tokenId) external payable;
+    
 }

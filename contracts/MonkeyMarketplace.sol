@@ -17,6 +17,7 @@ contract MonkeyMarketplace is Ownable, ReentrancyGuard, Pausable {
   IMonkeyContract private _monkeyContractInterface;
 
   address public savedMainContractAddress;
+  address public savedMarketContractAddress;
 
   event MarketTransaction(string TxType, address owner, uint256 tokenId);
 
@@ -41,6 +42,11 @@ contract MonkeyMarketplace is Ownable, ReentrancyGuard, Pausable {
     _monkeyContractInterface = IMonkeyContract(_constructorMonkeyContractAddress);
     require(_monkeyContractInterface.getMonkeyContractAddress() == _constructorMonkeyContractAddress, "CONSTRUCTOR: Monkey contract address must be the same.");
     savedMainContractAddress = _constructorMonkeyContractAddress;
+    
+    _monkeyContractInterface.connectMarket(address(this), true);
+    
+
+
   } 
  
  function pause() public onlyOwner {

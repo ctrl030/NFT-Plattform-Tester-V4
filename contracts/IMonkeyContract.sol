@@ -55,4 +55,9 @@ interface IMonkeyContract is IERC721{
   /// * @param _to The address to who to transfer to, cannot be 0 address
   /// * @param _tokenId The id of the transfering monkey  
   function transferNFT(address _from, address _to, uint256 _tokenId) external;
+
+  function connectMarket(address _receivedMarketContractAddress, bool setConnectMarket) external;
+
+
+
 }

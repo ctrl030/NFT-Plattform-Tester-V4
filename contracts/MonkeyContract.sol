@@ -11,6 +11,8 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 // importing openzeppelin script to make contract pausable
 import "@openzeppelin/contracts/security/Pausable.sol";
+// importing MonkeyMarketplace interface
+import "./IMonkeyMarketplace.sol";
 // importing hardhat console.log functionality
 import "hardhat/console.sol";
 
@@ -41,7 +43,29 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
     // Only 12 monkeys can be created from scratch (generation 0)
     uint256 public GEN0_Limit = 12;
     uint256 public gen0amountTotal;  
+
+    // MonkeyMarketplace interface
+    IMonkeyMarketplace private _monkeyMarketInterface;
+    // Boolean to control whether transfers have to check for open offers
+    bool private _marketConnected = false;    
     
+    // xxxxx
+    function connectMarket(address _receivedMarketContractAddress, bool setConnectMarket) external {
+        _monkeyMarketInterface = IMonkeyMarketplace(_receivedMarketContractAddress);
+        _marketConnected = setConnectMarket;
+    }
+
+    // xxxx
+    function checkMarketConnected() external view onlyOwner returns(address marketAddressSaved, bool isMarketConnected) {
+        return (
+            address(_monkeyMarketInterface),
+            _marketConnected
+        );
+    }
+   
+
+
+
     // STRUCT
 
     // this struct is the blueprint for new NFTs, they will be created from it

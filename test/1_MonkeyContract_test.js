@@ -739,6 +739,13 @@ describe("Monkey Contract, testing", () => {
 
   it('Test LAST: should show estimate of amount of assertions in testing', async () => {  
     console.log('During these Hardhat tests more than', assertionCounter , 'assertions were succesfully proven correct.')  
+
+    // xxxx connecting market must become safer
+    console.log(await monkeyContract.checkMarketConnected()); 
+
+    console.log(monkeyMarketContract.address);
+
+
   });
 
 });
