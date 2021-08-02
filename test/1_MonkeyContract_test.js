@@ -7,6 +7,7 @@ describe("Monkey Contract, testing", () => {
   // Global variable declarations
   let _contractInstance, monkeyContract, accounts;
 
+  // counter for hardhat assertions / expect 
   let  assertionCounter = 0;
 
   // this array serves as will receive the generated Hardhat addresses,
@@ -171,7 +172,16 @@ describe("Monkey Contract, testing", () => {
     
     // deploying the MonkeyMarketplace smart contract and sending it the address of the MonkeyContract for the marketplace constructor
     _marketContractInstance = await ethers.getContractFactory('MonkeyMarketplace');
-    monkeyMarketContract = await _marketContractInstance.deploy(monkeyContract.address);     
+    monkeyMarketContract = await _marketContractInstance.deploy(monkeyContract.address);   
+    
+    // accounts[0] / onlyOwner connects market to main contract, tokens now cannot be transferred in main while on sale in market
+    await monkeyContract.connectMarket(monkeyMarketContract.address, true);
+    // checking if contracts are connected correctly
+    const marketConnection = await monkeyContract.checkMarketConnected();
+    expect(marketConnection.isMarketConnected).to.equal(true);
+    expect(marketConnection.marketAddressSaved).to.equal(monkeyMarketContract.address);
+
+    assertionCounter=assertionCounter+2;
   })  
   
   it('Test 1: State variables are as expected: owner, contract address, NFT name, NFT symbol, gen 0 limit, gen 0 total, total supply', async() => { 
@@ -806,26 +816,19 @@ describe("Monkey Contract, testing", () => {
       "MonkeyContract: NFT is still on sale. Remove offer first."
     );
 
-   // REVERT: using safeTransferFrom (w. 4 arguments) to transfer an NFT is reverted in main contract, as token is still on sale   
-   await expect(  monkeyContract["safeTransferFrom(address,address,uint256)"](accounts[3].address, accounts[4].address, 28) ).to.be.revertedWith(
+    // REVERT: using safeTransferFrom (w. 4 arguments) to transfer an NFT is reverted in main contract, as token is still on sale   
+    await expect(  monkeyContract["safeTransferFrom(address,address,uint256)"](accounts[3].address, accounts[4].address, 28) ).to.be.revertedWith(
     "MonkeyContract: NFT is still on sale. Remove offer first."
-  );
+    );
 
     // buying now works again, as both contracts are unpaused   
-    await monkeyMarketContract.connect(accounts[2]).buyMonkey(28, {value: ethers.utils.parseEther("28")} );   
-    
-    const marketConnection = await monkeyContract.checkMarketConnected();
-
-    expect(marketConnection.isMarketConnected).to.equal(true);
-    expect(marketConnection.marketAddressSaved).to.equal(monkeyMarketContract.address);
-
-    assertionCounter=assertionCounter+34;
+    await monkeyMarketContract.connect(accounts[2]).buyMonkey(28, {value: ethers.utils.parseEther("28")} );
+    assertionCounter=assertionCounter+32;
 
   });
 
   it('Test LAST: should show estimate of amount of assertions in testing', async () => {  
-    console.log('During these Hardhat tests more than', assertionCounter , 'assertions were succesfully proven correct.')    
-
+    console.log('During these Hardhat tests more than', assertionCounter , 'assertions were succesfully proven correct.')        
   });
 
 });

@@ -49,13 +49,14 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
     // Boolean to control whether transfers have to check for open offers
     bool private _marketConnected = false;    
     
-    // xxxx
-    function connectMarket(address _receivedMarketContractAddress, bool setConnectMarket) external {
+    // function to connect the market contract
+    // when market is connected, NFTs can not be transfered via this contract while on sale in market
+    function connectMarket(address _receivedMarketContractAddress, bool setConnectMarket) external onlyOwner {
         _monkeyMarketInterface = IMonkeyMarketplace(_receivedMarketContractAddress);
         _marketConnected = setConnectMarket;
     }
 
-    // xxxx
+    // function to check if market is connected
     function checkMarketConnected() external view onlyOwner returns(address marketAddressSaved, bool isMarketConnected) {
         return (
             address(_monkeyMarketInterface),
@@ -63,9 +64,6 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
         );
     }
    
-
-
-
     // STRUCT
 
     // this struct is the blueprint for new NFTs, they will be created from it
@@ -120,14 +118,17 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
 
     // Functions 
 
+    // pausing funcionality from OpenZeppelin's Pausable
     function pause() public onlyOwner {
         _pause();
     }
 
+    // unpausing funcionality from OpenZeppelin's Pausable
     function unpause() public onlyOwner {
         _unpause();
     }
     
+    // public function to show contract's own address
     function getMonkeyContractAddress() public view returns (address) {  
         return _monkeyContractAddress;
     }   
@@ -155,9 +156,7 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
             ownerOf(tokenId),
             getApproved(tokenId)
         );
-    }    
-
-    
+    }   
 
     // gives back an array with the NFT tokenIds that the provided sender address owns
     // deleted NFTs are kept as entries with value 0 (token ID 0 is used by Zero Monkey)
@@ -228,18 +227,17 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
 
         emit MonkeyCreated(_owner, newMonkeyId, _parent1Id, _parent2Id, _genes);                    
 
-        // tokenId is returned
+        // This is the Token ID of the new NFT
         return newMonkeyId;
     }    
 
     
 
-    /// * @dev Assign ownership of a specific Monekey to an address.
+    /// * @dev Assign ownership of a specific NFT CryptoMonkey to an address.
     /// * @dev This poses no restriction on _msgSender()
     /// * @param _from The address from who to transfer from, can be 0 for creation of a monkey
     /// * @param _to The address to who to transfer to, cannot be 0 address
-    /// * @param _tokenId The id of the transfering monkey
-     
+    /// * @param _tokenId The id of the transfering monkey     
     function transferNFT(
         address _from,
         address _to,
@@ -256,6 +254,7 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
         safeTransferFrom(_from, _to, _tokenId);        
     }
 
+    // burning functionality, just to be called once from the constructor, to clear the zero monkey
     function burnNFT (        
         uint256 _tokenId
     ) private nonReentrant whenNotPaused{       
@@ -266,6 +265,7 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
         _burn(_tokenId);       
     }
 
+    // breeding functionality, combining two owned NFTs creates a new third one
     function breed(uint256 _parent1Id, uint256 _parent2Id) public nonReentrant whenNotPaused returns (uint256)  {
 
         // _msgSender() needs to be owner of both crypto monkeys
@@ -283,7 +283,7 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
         // calculate generation here
         uint256 _newGeneration = _calcGeneration(_parent1Id, _parent2Id);
 
-        // creating new monkey
+        // creating new monkey, receiving Token ID from _createMonkey function
         uint256 newMonkeyId = _createMonkey(_parent1Id, _parent2Id, _newGeneration, _newDna, _msgSender());                       
 
         emit BreedingSuccessful(
@@ -294,8 +294,9 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
             allMonkeysArray[newMonkeyId].parent2Id,
             allMonkeysArray[newMonkeyId].generation,
             _msgSender()
-        );       
+        ); 
 
+        // this is the Token ID for the new NFT
         return newMonkeyId;
     }
 
@@ -306,7 +307,7 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
         return uint8(block.timestamp % 255);
     } 
     
-    // will generate a pseudo random number and from that decide whether to take mom or dad genes, repeated for 8 pairs of 2 digits each
+    // will generate a pseudo random number and from that decide whether to take a two-digit pair of genes from _parent1genes or _parent2genes, repeated for 8 pairs
     function _mixDna (uint256 _parent1genes, uint256 _parent2genes) internal view returns (uint256) {
         uint256[8] memory _geneArray;
         uint8 _random = uint8(_getRandom());
