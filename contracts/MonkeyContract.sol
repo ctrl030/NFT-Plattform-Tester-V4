@@ -266,7 +266,7 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
         _burn(_tokenId);       
     }
 
-    function breed(uint256 _parent1Id, uint256 _parent2Id) public whenNotPaused returns (uint256)  {
+    function breed(uint256 _parent1Id, uint256 _parent2Id) public nonReentrant whenNotPaused returns (uint256)  {
 
         // _msgSender() needs to be owner of both crypto monkeys
         require(ownerOf(_parent1Id) == _msgSender() && ownerOf(_parent2Id) == _msgSender(), "MonkeyContract: Must be owner of both parent tokens");
@@ -388,7 +388,11 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
 
     // overriding ERC721's function, including whenNotPaused for added security
     function transferFrom(address from, address to, uint256 tokenId) public override whenNotPaused {
-        //solhint-disable-next-line max-line-length
+        bool tokenOnSale = _monkeyMarketInterface.isTokenOnSale(tokenId);    
+        if ( _marketConnected == true ) {
+            require( tokenOnSale != true, "MonkeyContract: NFT is still on sale. Remove offer first." );
+        }
+        
         require(_isApprovedOrOwner(_msgSender(), tokenId), "ERC721: transfer caller is not owner nor approved");
 
         _transfer(from, to, tokenId);
@@ -396,11 +400,20 @@ contract MonkeyContract is ERC721Enumerable, Ownable, ReentrancyGuard, Pausable 
 
     // overriding ERC721's function, including whenNotPaused for added security
     function safeTransferFrom(address from, address to, uint256 tokenId) public override whenNotPaused {
+        bool tokenOnSale = _monkeyMarketInterface.isTokenOnSale(tokenId);    
+        if ( _marketConnected == true ) {
+            require( tokenOnSale != true, "MonkeyContract: NFT is still on sale. Remove offer first." );
+        }
+        require(_isApprovedOrOwner(_msgSender(), tokenId), "ERC721: transfer caller is not owner nor approved");        
         safeTransferFrom(from, to, tokenId, "");
     }
 
     // overriding ERC721's function, including whenNotPaused for added security
     function safeTransferFrom(address from, address to, uint256 tokenId, bytes memory _data) public override whenNotPaused {
+        bool tokenOnSale = _monkeyMarketInterface.isTokenOnSale(tokenId);    
+        if ( _marketConnected == true ) {
+            require( tokenOnSale != true, "MonkeyContract: NFT is still on sale. Remove offer first." );
+        }
         require(_isApprovedOrOwner(_msgSender(), tokenId), "ERC721: transfer caller is not owner nor approved");
         _safeTransfer(from, to, tokenId, _data);
     }

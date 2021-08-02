@@ -186,7 +186,8 @@ contract MonkeyMarketplace is Ownable, ReentrancyGuard, Pausable {
   function removeOffer(uint256 _tokenId) public whenNotPaused {
 
     Offer memory tokenOffer = tokenIdToOfferMapping[_tokenId];
-
+    // Active offer must be present
+    require(tokenOffer.active == true, "No active offer for this tokenId" );
     //  Only the owner of _tokenId can delete an offer.
     require(tokenOffer.seller == msg.sender, "You're not the owner");    
     // setting array entry inactive
@@ -209,10 +210,9 @@ contract MonkeyMarketplace is Ownable, ReentrancyGuard, Pausable {
 
     Offer memory tokenOffer = tokenIdToOfferMapping[_tokenId];
     
-    require(tokenOffer.active == true, "No active offer for this monkey" );
+    require(tokenOffer.active == true, "No active offer for this tokenId" );
 
-    require(tokenOffer.price == msg.value, "Not sending the correct amount");    
-
+    require(tokenOffer.price == msg.value, "Not sending the correct amount");   
                                        
     address payable _oldOwner = tokenOffer.seller;
 

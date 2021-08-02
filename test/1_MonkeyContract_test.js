@@ -298,13 +298,34 @@ describe("Monkey Contract, testing", () => {
     assertionCounter=assertionCounter+3;
   });
 
-  it("Test 5: Reverting non-owned monkey", async () => {      
+  it("Test 5: Reverting non-owned monkey transfers and breeding", async () => {      
 
-    // REVERT: transfering a non-owned monkey
+    // REVERT: transfering a non-owned monkey with transferNFT
     await expect(monkeyContract.transferNFT(accounts[1].address, accounts[2].address, 1)).to.be.revertedWith(
       "ERC721: transfer of token that is not own"
-    );    
-    assertionCounter++;
+    ); 
+    
+    // REVERT: transfering a non-owned monkey with transferFrom 
+    await expect(monkeyContract.transferFrom(accounts[1].address, accounts[2].address, 1)).to.be.revertedWith(
+      "ERC721: transfer of token that is not own"
+    );
+
+    // REVERT: transfering a non-owned monkey with transferFrom (w. 4 arguments)
+    await expect(  monkeyContract["safeTransferFrom(address,address,uint256,bytes)"](accounts[1].address, accounts[2].address, 1, 013456) ).to.be.revertedWith(
+      "ERC721: transfer of token that is not own"
+    );
+
+    // REVERT: transfering a non-owned monkey with transferFrom (w. 3 arguments)  
+    await expect( monkeyContract["safeTransferFrom(address,address,uint256)"](accounts[1].address, accounts[2].address, 1) ).to.be.revertedWith(
+      "ERC721: transfer of token that is not own"
+    ); 
+
+    // REVERT: breeding a non-owned monkey    
+    await expect( monkeyContract.connect(accounts[3]).breed(1, 2) ).to.be.revertedWith(
+      "MonkeyContract: Must be owner of both parent tokens"
+    );
+
+    assertionCounter=assertionCounter+5;
   }); 
   
   it('Test 6: accounts[0] should give accounts[1] operator status and transfer, incl. reverting transfer without operator', async() => {  
@@ -317,10 +338,25 @@ describe("Monkey Contract, testing", () => {
     await  monkeyContract.setApprovalForAll(accounts[1].address, false);
     expect(await monkeyContract.isApprovedForAll(accounts[0].address, accounts[1].address)).to.equal(false);
 
-    // REVERT: without operator status, accounts[1] tries to send NFT with Token ID 4 from accounts[0] to accounts[2]     
+    // REVERT: without operator status, accounts[1] tries to use tratransferNFT to send NFT with Token ID 4 from accounts[0] to accounts[2]     
     await expect(monkeyContract.connect(accounts[1]).transferNFT(accounts[0].address, accounts[2].address, 4)).to.be.revertedWith(
       "MonkeyContract: Can't transfer this NFT without being owner, approved or operator"
     );
+
+    // REVERT: without operator status, accounts[1] tries to use transferFrom to send NFT with Token ID 4 from accounts[0] to accounts[2]     
+    await expect(monkeyContract.connect(accounts[1]).transferFrom(accounts[0].address, accounts[2].address, 4)).to.be.revertedWith(
+      "ERC721: transfer caller is not owner nor approved"
+    );
+
+    // REVERT: without operator status, accounts[1] tries to use safeTransferFrom (w. 4 arguments) to send NFT with Token ID 4 from accounts[0] to accounts[2]  
+    await expect(  monkeyContract.connect(accounts[1])["safeTransferFrom(address,address,uint256,bytes)"](accounts[0].address, accounts[2].address, 4, 013456) ).to.be.revertedWith(
+      "ERC721: transfer caller is not owner nor approved"
+    );
+
+    // REVERT: without operator status, accounts[1] tries to use safeTransferFrom (w. 3 arguments) to send NFT with Token ID 4 from accounts[0] to accounts[2]  
+    await expect( monkeyContract.connect(accounts[1])["safeTransferFrom(address,address,uint256)"](accounts[0].address, accounts[2].address, 4) ).to.be.revertedWith(
+      "ERC721: transfer caller is not owner nor approved"
+    ); 
     
     // Giving operator status again
     await monkeyContract.setApprovalForAll(accounts[1].address, true);
@@ -340,7 +376,7 @@ describe("Monkey Contract, testing", () => {
     expect(await monkeyContract.balanceOf(accounts[2].address)).to.equal(4);
     const test6Acc0ExpectedArr = [1,15,14,4,5,13,12,11,10];    
     await expectNFTArray(accounts[0].address, test6Acc0ExpectedArr);  
-    assertionCounter=assertionCounter+6;  
+    assertionCounter=assertionCounter+9;  
   });  
   
   it('Test 7: as operator, accounts[1] should use transfer to take 3 NFTs with Token IDs 13-15 from accounts[0]', async() => {  
@@ -465,7 +501,7 @@ describe("Monkey Contract, testing", () => {
     // REVERT: without market having operator status, accounts[2] tries to create 4 offers
     await expect(createMultiOffersAndVerify(accounts[2], pricesInETHTest14Acc2, tokenIDsToSellT14Acc2)).to.be.revertedWith(
       "Marketplace address needs operator status from monkey owner."
-    );        
+    );   
 
     // giving operator status and verifying
     await monkeyContract.connect(accounts[1]).setApprovalForAll(monkeyMarketContract.address, true);
@@ -490,6 +526,11 @@ describe("Monkey Contract, testing", () => {
       "You're not the owner"
     );
 
+    // REVERT: creating sell offer is reverted in market contract while it is paused   
+    await expect( monkeyMarketContract.connect(accounts[1]).setOffer("200000000000000", 7) ).to.be.revertedWith(
+      "Only monkey owner can set offer for this tokenId"                                              
+    );
+
     // accounts[2] deletes the offer for Token ID 7
     await monkeyMarketContract.connect(accounts[2]).removeOffer(7);
 
@@ -498,8 +539,18 @@ describe("Monkey Contract, testing", () => {
       "No active offer for this tokenId."
     );
 
+    // REVERT: buying NFT is reverted, no active offer for Token ID 7 should exist 
+    await expect( monkeyMarketContract.buyMonkey(7, {value: ethers.utils.parseEther("7")} )).to.be.revertedWith(
+      "No active offer for this tokenId"
+    );  
+
+    // REVERT: deleting sell offer is reverted, no active offer for Token ID 7 should exist
+    await expect( monkeyMarketContract.connect(accounts[2]).removeOffer(7) ).to.be.revertedWith(
+      "No active offer for this tokenId"
+    );
+
     await verifyAmountOfActiveOffers(7);  
-    assertionCounter=assertionCounter+5;
+    assertionCounter=assertionCounter+8;
 
   });
 
@@ -608,7 +659,7 @@ describe("Monkey Contract, testing", () => {
     
   })
 
-  it('Test 13: should test pausable functionality in both contracts', async () => {  
+  it('Test 13: should test pausable functionality in both contracts, as well as reverting transfers for tokens that are still on sale', async () => {  
 
     // giving market operator status to test selling with these accounts while paused
     await monkeyContract.connect(accounts[5]).setApprovalForAll(monkeyMarketContract.address, true);
@@ -619,6 +670,11 @@ describe("Monkey Contract, testing", () => {
       "Ownable: caller is not the owner"
     );
 
+    // REVERT: try to pause main contract while not being the owner
+    await expect(monkeyContract.connect(accounts[1]).unpause()).to.be.revertedWith(
+      "Ownable: caller is not the owner"
+    );
+
     // paused() should be false for both
     expect(await monkeyContract.paused()).to.equal(false);
     expect(await monkeyMarketContract.paused()).to.equal(false);
@@ -626,6 +682,11 @@ describe("Monkey Contract, testing", () => {
     
     // REVERT: try to pause market contract while not being the owner
     await expect(monkeyMarketContract.connect(accounts[1]).pause()).to.be.revertedWith(
+      "Ownable: caller is not the owner"
+    );
+
+    // REVERT: try to pause market contract while not being the owner
+    await expect(monkeyMarketContract.connect(accounts[1]).unpause()).to.be.revertedWith(
       "Ownable: caller is not the owner"
     );
 
@@ -689,6 +750,11 @@ describe("Monkey Contract, testing", () => {
 
     // transfering and buying are reverted when main contract is paused, but creating and deleting offers is allowed, since market is unpaused
 
+    // REVERT: buying NFT is reverted in market contract while it is paused    
+    await expect( monkeyMarketContract.connect(accounts[2]).buyMonkey(28, {value: ethers.utils.parseEther("28")} )).to.be.revertedWith(
+      "Pausable: paused"
+    );  
+
     // REVERT: using transferNFT to transfer an NFT is reverted in main contract while it is still paused    
     await expect( monkeyContract.connect(accounts[3]).transferNFT(accounts[3].address, accounts[4].address, 31) ).to.be.revertedWith(
       "Pausable: paused"
@@ -707,12 +773,7 @@ describe("Monkey Contract, testing", () => {
     // REVERT: using safeTransferFrom (w. 3 arguments) to transfer an NFT is reverted in main contract while it is still paused  
     await expect( monkeyContract["safeTransferFrom(address,address,uint256)"](accounts[3].address, accounts[4].address, 31) ).to.be.revertedWith(
       "Pausable: paused"
-    );
-
-    // REVERT: buying NFT is reverted even though market is unpaused but main contract is still paused    
-    await expect( monkeyMarketContract.connect(accounts[2]).buyMonkey(28, {value: ethers.utils.parseEther("28")} )).to.be.revertedWith(
-      "Pausable: paused"
-    );
+    );    
     
     // creating sell offer is allowed in market contract as it is unpaused      
     await monkeyMarketContract.connect(accounts[5]).setOffer("200000000000000", 2); 
@@ -730,25 +791,40 @@ describe("Monkey Contract, testing", () => {
     // transfering now works again, as both contracts are unpaused
     await monkeyContract.connect(accounts[3]).transferNFT(accounts[3].address, accounts[4].address, 31);
       
-    // REVERT: using transferNFT to transfer an NFT is reverted in main contract while it is still paused    
+    // REVERT: using transferNFT to transfer an NFT is reverted in main contract, as token is still on sale     
     await expect( monkeyContract.connect(accounts[3]).transferNFT(accounts[3].address, accounts[4].address, 28) ).to.be.revertedWith(
       "MonkeyContract: NFT is still on sale. Remove offer first."
     );
 
-    // buying now works again, as both contracts are unpaused   
-    await monkeyMarketContract.connect(accounts[2]).buyMonkey(28, {value: ethers.utils.parseEther("28")} );        
+    // REVERT: using transferFrom to transfer an NFT is reverted in main contract, as token is still on sale
+    await expect( monkeyContract.connect(accounts[3]).transferFrom(accounts[3].address, accounts[4].address, 28) ).to.be.revertedWith(
+      "MonkeyContract: NFT is still on sale. Remove offer first."
+    );  
+      
+    // REVERT: using safeTransferFrom (w. 4 arguments) to transfer an NFT is reverted in main contract, as token is still on sale   
+    await expect(  monkeyContract["safeTransferFrom(address,address,uint256,bytes)"](accounts[3].address, accounts[4].address, 28, 013456) ).to.be.revertedWith(
+      "MonkeyContract: NFT is still on sale. Remove offer first."
+    );
 
-    assertionCounter=assertionCounter+25;
+   // REVERT: using safeTransferFrom (w. 4 arguments) to transfer an NFT is reverted in main contract, as token is still on sale   
+   await expect(  monkeyContract["safeTransferFrom(address,address,uint256)"](accounts[3].address, accounts[4].address, 28) ).to.be.revertedWith(
+    "MonkeyContract: NFT is still on sale. Remove offer first."
+  );
+
+    // buying now works again, as both contracts are unpaused   
+    await monkeyMarketContract.connect(accounts[2]).buyMonkey(28, {value: ethers.utils.parseEther("28")} );   
+    
+    const marketConnection = await monkeyContract.checkMarketConnected();
+
+    expect(marketConnection.isMarketConnected).to.equal(true);
+    expect(marketConnection.marketAddressSaved).to.equal(monkeyMarketContract.address);
+
+    assertionCounter=assertionCounter+34;
 
   });
 
   it('Test LAST: should show estimate of amount of assertions in testing', async () => {  
-    console.log('During these Hardhat tests more than', assertionCounter , 'assertions were succesfully proven correct.')  
-
-    // xxxx connecting market must become safer
-    console.log(await monkeyContract.checkMarketConnected());
-    console.log(monkeyMarketContract.address);
-
+    console.log('During these Hardhat tests more than', assertionCounter , 'assertions were succesfully proven correct.')    
 
   });
 
